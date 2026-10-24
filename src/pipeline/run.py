@@ -22,10 +22,10 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 try:
-    from src.pipeline import db, llm, regs
+    from src.pipeline import db, llm, regs, review
 except ModuleNotFoundError as e:
     if e.name in ("src", "src.pipeline"):
-        from pipeline import db, llm, regs
+        from pipeline import db, llm, regs, review
     else:
         raise
 
@@ -60,17 +60,11 @@ requirements that one specific product must fulfil under it.
 The regulation is given one paragraph per line: `[p<page>] <paragraph> | <text>`.
 
 Include:
-- Obligations (shall, shall not, must, may ... only if) that the product's design, construction, materials, \
-photometric, electrical or mechanical performance, markings or durability must meet, and, when the regulation \
-governs installation on the vehicle, the installation requirements for this product.
-- Only obligations that bind this product's own functions and parts. Skip requirements for devices, functions or \
-vehicle categories the product does not have.
-- Test-procedure paragraphs only where they set a condition or limit the product must meet (a test level, an \
-exposure the samples must withstand, a pass criterion).
+- Obligations (shall, shall not, must, may ... only if) that the product's design, construction, materials, photometric, electrical or mechanical performance, markings or durability must meet, and, when the regulation governs installation on the vehicle, the installation requirements for this product.
+- Only obligations that bind this product's own functions and parts. Skip requirements for devices, functions or - Only obligations that bind this product's own functions and parts. Skip requirements for devices, functions or vehicle categories the product does not have.
+- Test-procedure and annex paragraphs where they set a condition, test level, test signal/pulse parameter (e.g. frequency bands, modulation, transient pulses), exposure, or pass/fail tolerance criterion the product must satisfy.
 
-Skip: definitions, scope, application documents and information folders, duties of approval authorities and \
-Technical Services, communication forms, sampling by inspectors, penalties, transitional provisions, and pure \
-descriptions of test equipment.
+ Skip: definitions, scope, application documents and information folders, duties of approval authorities and Technical Services, communication forms, penalties, transitional provisions, and pure descriptions of general test room/bench equipment.
 
 Write each requirement as follows:
 - One engineering obligation per requirement: one scope, one condition, one constraint. When a paragraph sets several \
@@ -213,6 +207,7 @@ def main() -> None:
     parser.add_argument("--team-id", default=None, help="default: TEAM_ID from .env")
     parser.add_argument("--regulations", nargs="+", default=None, help="skip selection and use these")
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--no-review", action="store_true", help="skip the review agent step")
     args = parser.parse_args()
 
     db.ensure_fresh()
@@ -256,6 +251,12 @@ def main() -> None:
         extracted = dict(pool.map(work, selected))
 
     submission = assemble(team_id, case_id, extracted)
+    if not args.no_review:
+        print("[review] running review agent to prune non-binding clauses ...", flush=True)
+        reviewed_reqs, discarded = review.review_requirements(spec, submission["requirements"], workers=args.workers)
+        print(f"[review] kept {len(reviewed_reqs)} requirements, pruned {len(discarded)} non-binding clauses")
+        submission["requirements"] = reviewed_reqs
+
     SUBMISSIONS_DIR.mkdir(exist_ok=True)
     path = SUBMISSIONS_DIR / f"{case_id}.json"
     path.write_text(json.dumps(submission, indent=2, ensure_ascii=False), encoding="utf-8")
