@@ -82,7 +82,7 @@ CREATE TABLE obligations (
     paragraph_id INTEGER REFERENCES paragraphs,  -- NULL when the label does not resolve
     ordinal INTEGER NOT NULL,               -- position among the paragraph's obligations
     text TEXT NOT NULL,
-    kind TEXT,
+    kind TEXT,                              -- one of pipeline.obligations.KINDS
     condition TEXT,
     model TEXT
 );
