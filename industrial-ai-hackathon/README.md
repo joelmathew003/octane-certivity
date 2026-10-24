@@ -1,5 +1,7 @@
 # Certivity hackathon challenge: from a product specification to the requirements it must fulfil
 
+# team - octane
+
 Certivity turns regulations into structured text with paragraph-level citations. Your task is the problem our users have: a company builds a product, and its engineers need to know every requirement the product must fulfil under the UN Regulations that apply to it.
 
 You may use any tools, models and methods you like. **You submit outputs, not code.** Certivity never runs your code.
