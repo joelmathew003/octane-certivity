@@ -1,8 +1,8 @@
 # Progress report: Octane × Certivity
 
-Updated: 2026-10-24, 20:30 (Saturday)
+Updated: 2026-10-24, 21:08 (Saturday)
 
-Status: Calibrated end-to-end full read (`run.py` v2) achieved 100.0% page recall (53/53 pages) and 85.8% gold requirement alignment offline (projected platform F2 ~75.9%). On the platform, the vote of three methods with the table step holds requirement F2 67.8 and F1 62.3 (number 3 on the leaderboard).
+Status: On the platform, the clean-prompt vote of three methods + facts filter + table step (`submissions/dev-rear-lamp.vote-clean.json`, 344 requirements) reached **requirement F2 72.5**. On the sub-challenge (`submissions/subgoal-dev.json`), `subgoal.py` achieved flag recall **83.3%**, precision **90.9%**, and accuracy **89.5%**.
 
 ## 1. Scores
 
@@ -10,7 +10,7 @@ Status: Calibrated end-to-end full read (`run.py` v2) achieved 100.0% page recal
 
 Only the platform measures the requirement level. The platform accepts 5 uploads in each hour.
 
-IMPORTANT: The leaderboard ranks the teams by requirement F2. F2 counts recall more than precision. At 19:30 we were number 5 of 9 (F2 64.9). At 19:47 we climbed to number 3 with F2 67.8. Number 1 had F2 76.2 at recall 89.5.
+IMPORTANT: The leaderboard ranks the teams by requirement F2. F2 counts recall more than precision. At 19:30 we were number 5 of 9 (F2 64.9). At 19:47 we climbed to number 3 with F2 67.8, and with the clean vote (`vote-clean`) we reached **F2 72.5**. Number 1 had F2 76.2 at recall 89.5.
 
 | Upload | Method | Reqs | Req P | Req R | Req F1 | Req F2 | Page F1 | Regulation F1 |
 |---|---|---|---|---|---|---|---|---|
@@ -21,14 +21,21 @@ IMPORTANT: The leaderboard ranks the teams by requirement F2. F2 counts recall m
 | 19:21 | Vote: 2 of 3 (agent v1, lenient review, full read) | 250 | 52.0 | 68.4 | 59.1 | 64.4 | 90.9 | 100 |
 | 19:21 | Vote: 2 of 3 (agent v2, lenient review, full read) | 280 | 48.2 | 71.1 | 57.4 | 64.9 | 87.0 | 100 |
 | 19:35 | Full read + Calibrated review (`run.py`, from Joel's computer) | 280 | 47.9 | 70.5 | 57.0 | 64.4 | 89.5 | 100 |
-| 19:47 | Vote (agent v1) + table paragraphs restated (`vote-agent1-tables`) | 250 | **54.8** | 72.1 | **62.3** | **67.8** | 90.9 | 100 |
+| 19:47 | Vote (agent v1) + table paragraphs restated (`vote-agent1-tables`) | 250 | **54.8** | 72.1 | **62.3** | 67.8 | 90.9 | 100 |
 | 19:54 | Vote (agent v2) + table paragraphs restated (`vote-agent2-tables`) | 280 | 50.0 | 73.7 | 59.6 | 67.3 | 87.0 | 100 |
+| 21:00 | Vote (clean prompts: agent + lenient + full read `--no-review` + `facts.py` + `tables.py`, `vote-clean`) | 344 | — | — | — | **72.5** | 82.3 | 100 |
 | *(ready)* | Fresh Calibrated Full Read (`run.py` v2, 53/53 pages matched) | 314 | ~51.9 | ~85.8 | ~64.7 | ~75.9 | 82.8 | 100 |
 
+- The clean vote (`submissions/dev-rear-lamp.vote-clean.json`, built via `work/make_clean_submission.sh`) achieves **72.5** requirement F2 on the platform.
 - The table step (`tables.py`) adds 3.4 points of F2 and 3.2 points of F1 on the platform.
-- With F2 67.8 we are number 3 on the leaderboard.
 - The fresh full-read run (`run.py` v2) achieved 53 of 53 gold pages (100% page recall) and 85.8% gold requirement alignment offline (163 of 190 obligations matched) by fixing over-pruning of test parameters/COP and extracting conditional exemptions.
 - A stricter agent makes a better vote: the lenient review gives the recall, so the agent must give the precision.
+
+### 1.1b Sub-challenge scores (`submissions/subgoal-dev.json`)
+
+| File | Method | Flag Recall | Flag Precision | Flag Accuracy |
+|---|---|---|---|---|
+| `submissions/subgoal-dev.json` | PDF paragraph alignment + diff + Claude evaluation (`subgoal.py`, clean prompts) | **83.3%** | **90.9%** | **89.5%** |
 
 ### 1.2 Offline scores (every file in `submissions/`)
 
@@ -44,19 +51,20 @@ IMPORTANT: The leaderboard ranks the teams by requirement F2. F2 counts recall m
 | `vote-agent2-lenient-fullread` | Vote: 2 of 3 (agent v2, lenient review, full read) | 280 | 51.4 | 75.8 | 61.3 | 0.870 | $0 |
 | `vote-agent1-tables` | Vote (agent v1) + table paragraphs restated (`tables.py`) | 250 | 56.0 | 73.7 | 63.6 | 0.909 | $0 |
 | `vote-agent2-tables` | Vote (agent v2) + table paragraphs restated (`tables.py`) | 280 | 52.5 | 77.4 | 62.6 | 0.870 | $0 |
+| `vote-clean` | Vote (clean prompts: agent + lenient + full read `--no-review` + `facts.py` + `tables.py`) | 344 | — | — | — | 0.823 | ~$3.94 |
 
-- Proxy F2: `vote-agent2-tables` 70.7 against 69.2 for `vote-agent2-lenient-fullread` (platform 64.9). Upload `vote-agent2-tables` next.
+- Platform F2: `vote-clean` achieved **72.5** (against 67.8 for `vote-agent1-tables`).
 
 - Proxy: our requirements and the expected ones are paired one to one in each cited paragraph. A pair counts when the text similarity is 0.65 or more. On the three uploads of files that we have (399, 172 and 250 requirements), the proxy is from 2 points below to 4 points above the platform. Use it to compare files, not as a score.
 - Page F1: `data/tools/score_local.py`.
-- A vote costs $0. It uses the outputs that the other runs made.
+- A vote costs $0. It uses the outputs that the other runs made (`facts.py` adds ~$0.08).
 
 NOTE: The proxy, the keep rates in the review prompt and all dev scores use the answer key of the dev case. Expect a lower score on the held-out case.
 
 ### 1.3 Cost
 
 - Obligations for the 4 dev regulations (one time): $11.79.
-- Total use of the hackathon credits until now: approximately $18.60 of $150.
+- Total use of the hackathon credits until now: approximately **$26 of $150**.
 
 ## 2. Architecture now
 
@@ -131,10 +139,10 @@ Section 5 of the diagram (gray box) shows it.
 | Vote of 3 voters | Platform F1 59.1 against 52.8 | $0 | Built (`vote.py`) |
 | Citation check | Fixes pages and versions, flags invented numbers | $0 | Built (`citations.py`) |
 | Step 1 one time, kept for all voters | All voters see the same pool | $0 | Not built |
-| One command for Sunday (`ensemble`) | Fewer manual steps | $0 | Not built |
+| One command for Sunday (`ensemble`) | Fewer manual steps | $0 | Built (`work/make_clean_submission.sh`) |
 | Build missing obligations automatically | The held-out case can need new regulations | ~$2–4 per regulation | Built (`retrieve.py --build-missing`) |
 | Offline proxy judge in the repository | Tune without platform uploads | $0 | Script only, not in the repository |
-| Product facts from the drawing callouts | Finer tags (S1, R1, class IA) | Small | Not built |
+| Product facts from the drawing callouts | Finer tags (S1, R1, class IA) | ~$0.08 | Built (`src/pipeline/facts.py` + `vote.py --facts`) |
 | Recall sweep with `search_db` | Find obligations that the filter missed | ~$1 per run | Not built |
 | Sub-goal pipeline | Version change detection between UN Regulation PDFs | ~$1 per run | Built (`src/pipeline/subgoal.py`) |
 
@@ -158,14 +166,11 @@ Section 5 of the diagram (gray box) shows it.
 | `f9c1ffb` | ishwargov | New drawing for the dev case (callouts) |
 | `9157e0d` | ishwargov | Review agent (`review_agent.py`) and tool loop in `llm.py` |
 | `acb9b6f` | ishwargov | Diagram section 4 |
-| not committed | Joel Mathew | Sub-goal pipeline: PDF paragraph diffing and evaluation (`subgoal.py`) |
-| not committed | Joel Mathew | Calibrated extract & review prompts: 100% page recall, zero hardcoding |
-| not committed | Joel Mathew | Exponential backoff retry loop in `llm.py` for API connection resilience |
-| not committed | — | Review agent prompt v2 (keeps markings and test parameters) |
-| not committed | — | `vote.py`, `citations.py`; `retrieve.py --reviewer` and `--build-missing` |
-| not committed | — | `tables.py`: restate table paragraphs after the vote (proxy F2 +1.5) |
-| not committed | — | Diagram: sections 4 to 6 rebuilt; steps 3 and 4 marked built |
-| not committed | — | This file |
+| `09985f9` / `76c095f` | ishwargov | `vote.py`, `citations.py`, `tables.py`; `retrieve.py --reviewer` and `--build-missing`; diagram sections 4–6 |
+| `9143621` | Joel Mathew | Sub-goal pipeline (`subgoal.py`), calibrated extract & review prompts, exponential backoff retry in `llm.py` |
+| `1178333` | Joel Mathew | Modify `PROGRESS.md` to reflect new scores |
+| `ed8824d` | Joel Mathew | Fixed overfitting of main and sub models |
+| `0a8332d` | ishwargov | Remove dev-case answers from all prompt examples; `facts.py` + `vote.py --facts` |
 
 ## 7. Work that is not complete
 
