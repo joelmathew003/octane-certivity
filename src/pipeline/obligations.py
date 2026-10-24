@@ -38,13 +38,26 @@ CHARS_PER_TOKEN = 3.5
 OBLIGATIONS_PER_SHALL = 2.9
 TOKENS_PER_OBLIGATION = 150
 
-# sections that hold no engineering obligations; none of the dev case's expected citations is in one
-SKIP_SECTIONS = re.compile(
-    r"^(?:annex \S+\s+)?(?:preamble|scope|definitions?|application for approval|approval\b|modifications?\b|"
-    r"extension of approval|penalt|production definitively discontinued|names and addresses|transitional provisions|"
-    r"information document|communication)",
+# administrative sections that hold no engineering obligations
+SKIP_MAIN_SECTIONS = re.compile(
+    r"^(?:preamble|scope|definitions?|application for approval|approval\b|modifications?\b|"
+    r"extension of approval|penalt|production definitively discontinued|names and addresses|transitional provisions)",
     re.IGNORECASE,
 )
+SKIP_ANNEX_SECTIONS = re.compile(
+    r"^annex\s+[A-Z0-9]+\s+(?:communication\b|information document\b|arrangements? of approval markings?\b)",
+    re.IGNORECASE,
+)
+
+
+def should_skip_section(section: str, section_title: str | None) -> bool:
+    """Skip administrative sections; preserve all technical annexes and technical body sections."""
+    title = section_title or section
+    if section == "Preamble" or section in ("1", "2"):
+        return True
+    if section.startswith("Annex"):
+        return bool(SKIP_ANNEX_SECTIONS.match(title))
+    return bool(SKIP_MAIN_SECTIONS.match(title))
 SCOPE_SECTIONS = ("Preamble", "1", "2")
 HEADING_LABEL = re.compile(r"^(?:\d+(?:\.\d+)?|Annex \S+(?: Part \S+)?)$")
 
@@ -133,7 +146,7 @@ def chunks(regulation: str) -> list[list[dict]]:
     groups: list[list[dict]] = []
     current = None
     for row in rows(regulation):
-        if row["section"] == "Preamble" or SKIP_SECTIONS.match(row["section_title"] or row["section"]):
+        if should_skip_section(row["section"], row["section_title"]):
             current = None
             continue
         if unit_of(row["paragraph"]) != current:

@@ -143,15 +143,47 @@ def index_and_align(old_pdf: Path, new_pdf: Path) -> dict[str, Any]:
     }
 
 
-def is_technical_section(label: str) -> bool:
-    """True if paragraph is in technical specification/testing sections (5, 6, Annexes)."""
-    if label.startswith("5.") or label == "5":
-        return True
-    if label.startswith("6.") or label == "6":
-        return True
-    if "Annex" in label and not label.startswith("Annex 1 ") and not label.startswith("Annex 2 "):
-        return True
-    return False
+ADMIN_SECTIONS = {"Preamble", "1", "2", "3"}
+ADMIN_HEADINGS = re.compile(
+    r"\b(?:application for approval|penalt|production definitively discontinued|names and addresses|"
+    r"transitional provisions|communication form|arrangements? of approval marks?)\b",
+    re.IGNORECASE,
+)
+
+
+def text_similarity(s1: str, s2: str) -> float:
+    """Jaccard word similarity between two texts."""
+    w1 = set(s1.lower().split())
+    w2 = set(s2.lower().split())
+    if not w1 or not w2:
+        return 0.0
+    return len(w1 & w2) / len(w1 | w2)
+
+
+def is_technical_section(label: str, text: str = "") -> bool:
+    """True if paragraph is outside purely administrative sections."""
+    if label == "Preamble":
+        return False
+    if label.startswith("Annex 1 ") or label == "Annex 1" or label.startswith("Annex 2 ") or label == "Annex 2":
+        return False
+    match = re.match(r"^(\d+)", label)
+    if match and match.group(1) in ADMIN_SECTIONS:
+        return False
+    if text and len(text) < 150 and ADMIN_HEADINGS.search(text):
+        return False
+    return True
+
+
+def safe_text(text: str, max_chars: int = 1950) -> str:
+    """Normalize text and ensure it stays cleanly within max_chars without mid-sentence truncation."""
+    cleaned = norm(text)
+    if len(cleaned) <= max_chars:
+        return cleaned
+    truncated = cleaned[:max_chars]
+    last_stop = max(truncated.rfind("."), truncated.rfind(";"))
+    if last_stop > max_chars - 300:
+        return truncated[:last_stop + 1].strip()
+    return truncated
 
 
 def is_heading_only(text: str) -> bool:
@@ -189,7 +221,7 @@ def evaluate_existing_requirements(
     for p in new_pars:
         lbl = p["paragraph"]
         # Include technical paragraphs or ones matching relevant old sections
-        if is_technical_section(lbl):
+        if is_technical_section(lbl, p["text"]):
             para_lines.append(f"[p{p['page']}] {lbl} | {p['text']}")
 
     req_context = "\n".join(req_lines)
@@ -222,7 +254,7 @@ def evaluate_existing_requirements(
             changes.append({
                 "requirement_id": rid,
                 "change": "modified",
-                "new_text": norm(ev.get("new_text") or "")[:2000],
+                "new_text": safe_text(ev.get("new_text") or ""),
                 "reason": ev.get("reason") or f"Paragraph amended in version {new_ver}.",
                 "source": {
                     "page": int(ev.get("new_page") or 1),
@@ -282,7 +314,7 @@ def detect_added_requirements(
         changes.append({
             "requirement_id": None,
             "change": "added",
-            "new_text": norm(item.get("new_text") or "")[:2000],
+            "new_text": safe_text(item.get("new_text") or ""),
             "reason": item.get("reason") or f"Paragraph {item.get('paragraph')} of {regulation} is new in version {new_ver}.",
             "source": {
                 "page": int(item.get("page") or 1),
@@ -342,7 +374,7 @@ def run_subgoal(
     candidate_new_pars = []
     for p in new_pars:
         lbl = p["paragraph"]
-        if not is_technical_section(lbl) or is_heading_only(p["text"]):
+        if not is_technical_section(lbl, p["text"]) or is_heading_only(p["text"]):
             continue
         # If paragraph is new or significantly changed in new version
         if lbl not in old_map:
@@ -350,9 +382,10 @@ def run_subgoal(
         else:
             t_old = norm(old_map[lbl]["text"])
             t_new = norm(p["text"])
-            if t_old != t_new and (len(t_new) > len(t_old) + 50 or "new" in lbl or lbl == "5.1.4.1"):
-                # Also include if new clauses might have been inserted
-                candidate_new_pars.append(p)
+            if t_old != t_new:
+                sim = text_similarity(t_old, t_new)
+                if len(t_new) > len(t_old) + 40 or sim < 0.4:
+                    candidate_new_pars.append(p)
 
     print(f"[subgoal] {len(candidate_new_pars)} candidate new paragraphs in technical sections.")
 
@@ -371,7 +404,7 @@ def run_subgoal(
                 covered_lines.append(f"- {c['requirement_id']} now covers new paragraph {p}: {c['new_text'][:80]}...")
 
     covered_lines.append(
-        "\nIMPORTANT NOTE: If a paragraph number in the new version (such as 5.1.4.1) was reassigned "
+        "\nIMPORTANT NOTE: If a paragraph number in the new version was reassigned "
         "to a completely new provision that was not in the older version, treat that provision as ADDED."
     )
     covered_summary = "\n".join(covered_lines)
