@@ -44,20 +44,34 @@ def client() -> anthropic.Anthropic:
         _client = anthropic.Anthropic()
     return _client
 
+import time
 
-def _send(system: str, messages: list[dict], schema: dict, effort: str, tools: list[dict] | None = None):
+
+def _send(system: str, messages: list[dict], schema: dict, effort: str, tools: list[dict] | None = None, retries: int = 4):
     """One streamed request whose final answer must match `schema`; its usage is added to the totals."""
-    with client().beta.messages.stream(
-        model=MODEL,
-        max_tokens=MAX_TOKENS,
-        system=system,
-        messages=messages,
-        output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
-        **({"tools": tools} if tools else {}),
-    ) as stream:
-        response = stream.get_final_message()
+    last_err = None
+    for attempt in range(retries):
+        try:
+            with client().beta.messages.stream(
+                model=MODEL,
+                max_tokens=MAX_TOKENS,
+                system=system,
+                messages=messages,
+                output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
+                betas=["server-side-fallback-2026-07-01"],
+                fallbacks="default",
+                **({"tools": tools} if tools else {}),
+            ) as stream:
+                response = stream.get_final_message()
+            break
+        except (anthropic.APIConnectionError, anthropic.RateLimitError, anthropic.InternalServerError) as exc:
+            last_err = exc
+            if attempt == retries - 1:
+                raise
+            time.sleep(2 * (attempt + 1))
+    else:
+        raise last_err or RuntimeError("Failed to get response after retries")
+
     with _usage_lock:
         for key in PRICE_PER_MILLION:
             usage[key] += getattr(response.usage, key, 0) or 0

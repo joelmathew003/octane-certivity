@@ -42,7 +42,7 @@ REVIEW_SCHEMA = {
     "additionalProperties": False,
 }
 
-BATCH_SIZE = 50
+BATCH_SIZE = 25
 
 
 def review_batch(spec: str, batch: list[dict], offset: int) -> list[dict]:
@@ -60,7 +60,7 @@ def review_batch(spec: str, batch: list[dict], offset: int) -> list[dict]:
         {"type": "text", "text": prompts.render("review.task", spec=spec, candidates=candidates_block)},
     ]
 
-    result = llm.ask_json(prompts.render("review.system"), content, REVIEW_SCHEMA, effort="medium")
+    result = llm.ask_json(prompts.render("review.system"), content, REVIEW_SCHEMA, effort="high")
     return result.get("reviews", [])
 
 
