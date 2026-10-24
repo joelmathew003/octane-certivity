@@ -5,29 +5,27 @@ You are given:
 2. The context of changed and restructured paragraphs in the new version of the regulation.
 
 Your task is to evaluate each existing requirement and determine its status:
-- "unchanged": The engineering obligation still applies in the new version with the same technical substance and constraints.
-  CRITICAL: Do NOT mark a requirement as "modified" merely because its paragraph was renumbered, split, or moved, or because of minor typographical/unit abbreviations (e.g. "seconds" to "s"). If the underlying technical test step or requirement has not been substantively altered, it is "unchanged".
+- "unchanged": The specific engineering obligation still applies in the new version with the same technical action, thresholds, and test steps:
+  * Section reorganization: When a section or test procedure is reorganized or renumbered under a descriptive heading, individual steps or rules within that procedure whose own text and technical actions were not altered remain "unchanged".
+  * Substantive step changes: Only mark a requirement as "modified" if THAT SPECIFIC REQUIREMENT'S own technical obligation, qualifying adjectives, parameters, or pass/fail thresholds were altered.
 
-- "modified": The requirement was substantively amended, updated, or re-scoped in the new version:
-  - Technical conditions, scopes, or triggers were added, deleted, or changed.
-  - Limits, speeds, distance ranges, or tolerances were altered.
-  - Test triggering points, pass/fail criteria, or testing conditions were updated.
-  - Clarifying qualifiers were added to the requirement obligation (e.g. adding qualifiers like "relevant" to a target or distance).
+- "modified": The specific requirement obligation itself was substantively amended in the new version:
+  * Textual changes to the obligation: Specific new qualifiers, clarifying adjectives, conditions, or parameters were added to, removed from, or altered within the requirement sentence itself.
+  * Technical criteria: Numerical limits, tolerances, speeds, distances, or triggering values were altered.
 
   For modified requirements, provide:
   - new_text: The complete updated requirement text for this single obligation reflecting the new regulation version:
-    * Must be an active, self-contained obligation ("The system shall...", "The device shall...", "(a) Position the vehicle...", etc.).
-    * Maintain the original sentence structure and subject of the requirement while incorporating the new text and conditions.
-    * Do NOT prepend old obsolete section titles.
-    * Keep numerical values, units, and conditions exact.
-    * ATOMIC PARAGRAPH MAPPING: Update this requirement strictly with the text of the single specific paragraph it maps to. Do NOT append or merge text from separate subsequent subparagraphs (e.g. do not merge a child paragraph X.Y.1 into its parent X.Y). Separate subparagraphs will be extracted independently as new requirements.
-    * Keep length strictly under 1,900 characters (schema max is 2,000). If an amended paragraph contains high-level obligations accompanied by extensive lists of examples, state the binding conditions concisely without expanding verbose non-binding sensory examples that risk truncation.
+    * Must be an active, self-contained obligation ("The system shall...", "The vehicle shall...", etc.).
+    * VERBATIM NEW REGULATION TEXT: Do NOT patch the old requirement text piecemeal. Replace the text with the new regulation paragraph's text verbatim, including any leading qualifying or conditional clauses.
+    * Maintain exact numbers, units, symbols, and formatting from the new regulation.
+    * ATOMIC PARAGRAPH MAPPING: Update this requirement strictly with the text of the single specific paragraph it maps to. Do NOT append or merge text from separate child subparagraphs (separate subparagraphs are handled independently).
+    * Keep length strictly under 1,900 characters (schema max is 2,000). For verbose multi-part technical specifications approaching this limit, retain all mandatory engineering conditions, thresholds, and criteria, while omitting non-binding parenthetical illustrative examples to avoid truncation.
   - new_paragraph: The specific paragraph label in the new version where this requirement is located.
   - new_page: The page number in the new version PDF where this new paragraph is located.
   - reason: A concise explanation following Certivity's standard style:
     "Paragraph <new_paragraph> (formerly <old_paragraph>) of {regulation} was amended in version {new_version}: '<diff summary>'."
     (If the paragraph label did not change: "Paragraph <paragraph> of {regulation} was amended in version {new_version}: '<diff summary>'.")
-    Use exact quotation of changed phrases.
+    Use exact quotation of changed phrases in this paragraph (e.g. 'phrase A' became 'phrase B', or 'phrase C' was removed). Do NOT speculate about or reference other paragraphs.
 
 - "removed": The obligation or provision no longer appears anywhere in the new version of the regulation (it was completely deleted or repealed).
   For removed requirements, provide:

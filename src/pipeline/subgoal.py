@@ -174,7 +174,7 @@ def is_technical_section(label: str, text: str = "") -> bool:
     return True
 
 
-def safe_text(text: str, max_chars: int = 1950) -> str:
+def safe_text(text: str, max_chars: int = 1990) -> str:
     """Normalize text and ensure it stays cleanly within max_chars without mid-sentence truncation."""
     cleaned = norm(text)
     if len(cleaned) <= max_chars:
@@ -376,15 +376,20 @@ def run_subgoal(
         lbl = p["paragraph"]
         if not is_technical_section(lbl, p["text"]) or is_heading_only(p["text"]):
             continue
-        # If paragraph is new or significantly changed in new version
+        # If paragraph is new in new version
         if lbl not in old_map:
             candidate_new_pars.append(p)
         else:
             t_old = norm(old_map[lbl]["text"])
             t_new = norm(p["text"])
             if t_old != t_new:
+                # If the old paragraph text is already completely contained in the new text,
+                # the provision was already present in the older version (not an added paragraph)
+                if t_old in t_new:
+                    continue
                 sim = text_similarity(t_old, t_new)
-                if len(t_new) > len(t_old) + 40 or sim < 0.4:
+                # If similarity is very low, the label was reassigned to an entirely new provision
+                if sim < 0.25:
                     candidate_new_pars.append(p)
 
     print(f"[subgoal] {len(candidate_new_pars)} candidate new paragraphs in technical sections.")
@@ -401,11 +406,12 @@ def run_subgoal(
         for c in existing_changes:
             if c["change"] == "modified":
                 p = c["source"]["paragraph"]
-                covered_lines.append(f"- {c['requirement_id']} now covers new paragraph {p}: {c['new_text'][:80]}...")
+                covered_lines.append(f"- {c['requirement_id']} specifically covers new paragraph {p}")
 
     covered_lines.append(
-        "\nIMPORTANT NOTE: If a paragraph number in the new version was reassigned "
-        "to a completely new provision that was not in the older version, treat that provision as ADDED."
+        "\nIMPORTANT NOTE: An existing requirement only covers its specific paragraph label. "
+        "Any newly introduced child subparagraph or separate provision not covered by existing requirements "
+        "must be extracted if it contains engineering obligations."
     )
     covered_summary = "\n".join(covered_lines)
 
