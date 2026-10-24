@@ -22,10 +22,10 @@ import sys
 from pathlib import Path
 
 try:
-    from src.pipeline import citations, db, llm, run, tables
+    from src.pipeline import citations, db, facts, llm, run, tables
 except ModuleNotFoundError as e:
     if e.name in ("src", "src.pipeline"):
-        from pipeline import citations, db, llm, run, tables
+        from pipeline import citations, db, facts, llm, run, tables
     else:
         raise
 
@@ -61,6 +61,8 @@ def main() -> None:
     parser.add_argument("--paragraph-voters", type=Path, nargs="*", default=[], help="submissions that vote per paragraph")
     parser.add_argument("--min-votes", type=int, default=2)
     parser.add_argument("--no-tables", action="store_true", help="skip restating table paragraphs (tables.py)")
+    parser.add_argument("--facts", type=Path, default=None, help="facts.json from pipeline.facts: drop requirements "
+                                                                 "for categories the product does not have")
     parser.add_argument("--team-id", default=None, help="default: TEAM_ID from .env")
     args = parser.parse_args()
 
@@ -68,6 +70,9 @@ def main() -> None:
     case_dir = next((base / args.case_dir for base in (run.DATA_DIR, run.REPO_ROOT) if (base / args.case_dir).exists()),
                     args.case_dir).resolve()
     kept = vote(load(args.pool), [load(p) for p in args.voters], [load(p) for p in args.paragraph_voters], args.min_votes)
+    if args.facts:
+        kept, dropped = facts.filter(kept, json.loads(args.facts.read_text(encoding="utf-8")))
+        print(f"[facts] dropped {dropped} requirements for categories the product does not have")
     if not args.no_tables:
         kept, change = tables.restate(kept)
         print(f"[tables] restated table paragraphs: {change:+d} requirements")

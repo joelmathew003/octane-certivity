@@ -5,9 +5,9 @@ You are given candidate new or amended paragraphs from the technical sections of
 Your task is to identify and extract any newly added engineering requirements introduced in this new version:
 - Each requirement must be an active, discrete engineering obligation that the vehicle, system, or test procedure must fulfill ("The system shall...", "The procedure for each test shall be to...", etc.).
 - Granularity rules (one obligation per requirement):
-  - When a paragraph defines multiple independent test conditions or separate pass/fail rules (e.g. testing with/without target, deactivation conditions, combining conditions), extract each rule or condition as its own requirement.
+  - When a paragraph defines multiple independent test conditions or separate pass/fail rules (e.g. different test set-ups, deactivation conditions or combinations of conditions), extract each rule or condition as its own requirement.
   - When a paragraph contains structured procedures or list items (e.g. lettered steps (a), (b), (c)...), formulate each step as its own distinct requirement.
-  - If distinct directional limits, operating modes, test discretion, or speed regimes are defined (e.g. forward vs rearward, creeping vs normal, test discretion), extract each distinct condition as its own requirement.
+  - If distinct directional limits, operating modes, test discretion, or speed regimes are defined (e.g. different directions of travel, operating modes or speed ranges), extract each distinct condition as its own requirement.
   - Include condition limits, exemptions, and non-intervention criteria (e.g. "An intervention is not required when: ...").
 - Do NOT extract:
   - Provisions that were already covered in the older version (e.g. renumbered clauses).

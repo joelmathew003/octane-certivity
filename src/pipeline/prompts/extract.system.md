@@ -24,14 +24,13 @@ The scoring platform matches requirements ONE-TO-ONE against gold expert require
 
 2. **Split Compound Sentences & Separate Obligations:**
    - If a paragraph or sentence sets multiple distinct obligations (joined by "and", "or", or semicolons), decompose them into separate requirements.
-   - Example (§ 5.1):
-     * Req 1: "...shall retain the characteristics prescribed by this Regulation."
-     * Req 2: "...shall enable the vehicle to comply with the requirements of this Regulation."
-     * Req 3: "It shall not be possible for the device to be inadvertently maladjusted."
+   - Example (UN R37, paragraph 3.4.5.2: "The integral value of the chromaticity coordinates shall lie within the required chromaticity area; this shall be measured by the method specified in Annex 6."):
+     * Req 1: "The integral value of the chromaticity coordinates shall lie within the required chromaticity area."
+     * Req 2: "The chromaticity coordinates shall be measured by the method specified in Annex 6."
 
 3. **Split Multi-Limit & Operating Criteria:**
    - For quantitative performance values, separate minimum baseline criteria on primary operating axes from maximum ceiling limits and off-axis or transient tolerances.
-   - For mounting geometry (heights, widths, clearances), keep the full defined range (e.g. "not less than 250 mm and not more than 1,200 mm above the ground") in a single requirement.
+   - For mounting geometry (heights, widths, clearances), keep the full defined range (e.g. "not less than 800 mm and not more than 1,950 mm above the floor") in a single requirement.
    - For physical modules and components, separate mechanical fitting constraints, tool removal/accessibility requirements, and tamperproof requirements into separate items.
 
 4. **Split Lists and Sub-clauses:**
@@ -45,17 +44,16 @@ The scoring platform matches requirements ONE-TO-ONE against gold expert require
    - Stay verbatim to the regulation's exact wording.
    - DO NOT replace general regulatory subjects (such as *"Every device belonging to an approved type"* or *"The markings"*) with specific product names (such as *"The component"* or *"The rear lamp"*). Use the regulation's exact legal phrasing.
    - Keep numbers, units, symbols and tolerances exact.
-   - paragraph: the label exactly as written after the page tag (e.g. `6.10.4.2` or `Annex 6 Part 4 1`).
+   - paragraph: the label exactly as written after the page tag (e.g. `5.3.2.1` or `Annex 3 Part 1 2`).
    - page: the number in the paragraph's [p] tag.
    - test_case: one concise sentence on how to verify the requirement.
 
 ---
 
-### Examples of Expected Atomic Style:
-- "The markings shall be clearly legible and indelible." (paragraph 3.3.1.1.1)
-- "For pulse 1, the ESA shall meet immunity test level -75 V (12V system) or -450 V (24V system) for 500 pulses with FPSC III for functions related to immunity and FPSC III for functions not related to immunity as specified in Table 3b." (paragraph 6.9.1)
-- "The device shall have a horizontal angle of geometric visibility of 45° outwards to 45° inwards." (paragraph 6.10.5.2)
-- "The device shall have a vertical angle of geometric visibility of 15° above and below the horizontal." (paragraph 6.10.5.2)
-- "The device shall be at a height above the ground of not less than 350 mm nor more than 1,500 mm." (paragraph 6.10.4.2)
-- "The device shall meet the requirements in Table 7 for performance limits and standard distribution." (paragraph 5.5.1)
-- "The device shall be so designed and constructed that in normal conditions of use, and notwithstanding vibrations, satisfactory operation remains assured." (paragraph 4.3)
+### Examples of Expected Atomic Style (from regulations outside any test case):
+- "The approval mark and symbol shall be clearly legible and be indelible." (UN R43, paragraph 5.6)
+- "The braking equipment shall be so designed, constructed and fitted as to be able to resist the corroding and ageing phenomena to which it is exposed." (UN R13-H, paragraph 5.1.1.2)
+- "Only such hand-rails and handholds shall be considered which are not less than 800 mm and not more than 1,950 mm above the floor." (UN R107, Annex 3 7.11.2.2)
+- "Brake linings shall be at least 80 per cent bedded." (UN R13-H, Annex 7 3.3)
+- "Brake linings shall not have exceeded a temperature of 180 °C during the bedding procedure." (UN R13-H, Annex 7 3.3)
+- "The system or part(s) thereof shall be aimed so that the position of the cut-off complies with the requirements indicated in Table 2 of Annex 3." (UN R123, paragraph 6.2.2)

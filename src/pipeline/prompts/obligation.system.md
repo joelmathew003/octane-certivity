@@ -4,20 +4,20 @@ The whole regulation is given one paragraph per line, `[p<page>] <paragraph> | <
 
 What counts as an obligation:
 - Anything the regulation requires of a device, a vehicle, its installation or a test result: "shall", "shall not", "must", "is required", and permissions with a condition ("may ... only if", "may ... provided that").
-- A sub-item that takes its obligation from a parent paragraph, such as "In height: not less than 350 mm ..." under a "Position" paragraph, list items, or table rows. Write it as a full obligation that names the subject from the parent.
+- A sub-item that takes its obligation from a parent paragraph, such as an item "(b) not more than 1,950 mm above the floor" under a paragraph that names what it applies to, list items, or table rows. Write it as a full obligation that names the subject from the parent.
 - Not: headings, notes given for information, definitions, and descriptions that require nothing.
 
 How to write each obligation:
 - One obligation per requirement: one subject, one condition, one constraint. A paragraph with several requirements (a list, a table with a value per function, a limit per test pulse) gives one obligation for each.
 - Stay close to the regulation's wording, but make the text self-contained: name the device or function it binds, and keep numbers, units and tolerances exactly as written. Add nothing the regulation does not say.
-- paragraph: the label of the paragraph the obligation comes from, exactly as written after the page tag (e.g. `6.10.4.2` or `Annex 6 Part 4 1`). A sub-item cites its own label, not its parent's. For an obligation from a table, append the table name, e.g. `5.1.4.4.1. Table 3`.
+- paragraph: the label of the paragraph the obligation comes from, exactly as written after the page tag (e.g. `5.3.2.1` or `Annex 3 Part 1 2`). A sub-item cites its own label, not its parent's. For an obligation from a table, append the table name, e.g. `6.2.2. Table 2`.
 - kind: what the obligation constrains:
 {kinds}
 - applies_to: the devices or functions, from the list in the task, that the obligation binds; `all` when it binds everything the regulation covers.
 - vehicle_categories: the vehicle categories the obligation is limited to (e.g. ["M1", "N1"]); [] when the paragraph sets no such limit.
-- condition: when the obligation applies, if the text limits it (e.g. "if the lamp is grouped with the stop lamp"); "" otherwise.
+- condition: when the obligation applies, if the text limits it (e.g. "if the vehicle is fitted with an anti-lock system"); "" otherwise.
 
-Examples of the expected style:
-- "The rear position lamps shall be at a height above the ground of not less than 350 mm nor more than 1,500 mm (2,100 mm if the shape of the bodywork makes it impossible to keep within 1,500 mm and if the optional lamps are not installed)." (paragraph 6.10.4.2, kind installation)
-- "For pulse 1, the ESA shall meet immunity test level -75 V (12V system) or -450 V (24V system) for 500 pulses with FPSC III for functions related to immunity and FPSC III for functions not related to immunity as specified in Table 3b." (paragraph 6.9.1, kind electrical)
-- "The lamps shall be so designed and constructed that in normal conditions of use, and notwithstanding the vibrations to which the lamps may be subjected in such use, the satisfactory operation of the lamps remains assured and the lamps retain the characteristics prescribed by this Regulation." (paragraph 4.3, kind durability)
+Examples of the expected style (from regulations outside any test case):
+- "The braking equipment shall be so designed, constructed and fitted as to be able to resist the corroding and ageing phenomena to which it is exposed." (paragraph 5.1.1.2, kind durability)
+- "Brake linings shall not have exceeded a temperature of 180 °C during the bedding procedure." (paragraph Annex 7 3.3, kind test_condition)
+- "Only such hand-rails and handholds shall be considered which are not less than 800 mm and not more than 1,950 mm above the floor." (paragraph Annex 3 7.11.2.2, kind construction)

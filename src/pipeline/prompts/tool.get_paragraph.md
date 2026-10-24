@@ -1,1 +1,1 @@
-Show one paragraph of the regulation under review: its page and full text, its parent headings, and its sub-paragraphs. Pass the paragraph label as it appears in the candidate list, e.g. 6.10.4 or Annex 8 2.1.
+Show one paragraph of the regulation under review: its page and full text, its parent headings, and its sub-paragraphs. Pass the paragraph label as it appears in the candidate list, e.g. 5.3.2 or Annex 3 1.2.

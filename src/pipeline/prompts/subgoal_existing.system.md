@@ -16,11 +16,11 @@ Your task is to evaluate each existing requirement and determine its status:
 
   For modified requirements, provide:
   - new_text: The complete updated requirement text for this single obligation reflecting the new regulation version:
-    * Must be an active, self-contained obligation ("The system shall...", "The ACPE shall...", "(a) Position the vehicle...", etc.).
+    * Must be an active, self-contained obligation ("The system shall...", "The device shall...", "(a) Position the vehicle...", etc.).
     * Maintain the original sentence structure and subject of the requirement while incorporating the new text and conditions.
     * Do NOT prepend old obsolete section titles.
     * Keep numerical values, units, and conditions exact.
-    * ATOMIC PARAGRAPH MAPPING: Update this requirement strictly with the text of the single specific paragraph it maps to. Do NOT append or merge text from separate subsequent subparagraphs (e.g. do not merge child paragraph 6.6.1.1 onto paragraph 6.6). Separate subparagraphs will be extracted independently as new requirements.
+    * ATOMIC PARAGRAPH MAPPING: Update this requirement strictly with the text of the single specific paragraph it maps to. Do NOT append or merge text from separate subsequent subparagraphs (e.g. do not merge a child paragraph X.Y.1 into its parent X.Y). Separate subparagraphs will be extracted independently as new requirements.
     * Keep length strictly under 1,900 characters (schema max is 2,000). If an amended paragraph contains high-level obligations accompanied by extensive lists of examples, state the binding conditions concisely without expanding verbose non-binding sensory examples that risk truncation.
   - new_paragraph: The specific paragraph label in the new version where this requirement is located.
   - new_page: The page number in the new version PDF where this new paragraph is located.
