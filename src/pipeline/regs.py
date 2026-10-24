@@ -1,9 +1,14 @@
-"""The regulation catalogue (regulations/index.json) and the paragraph index built by pipeline.index_pdfs."""
+"""Read access to the regulations: the catalogue and the paragraphs, all from the SQLite database.
+
+`python -m src.pipeline.db` builds work/regulations.db from the kit's regulations/index.json and the paragraph index
+(work/index/*.jsonl, made by pipeline.index_pdfs). Those files are only build inputs: the pipeline reads the database.
+"""
 
 from __future__ import annotations
 
-import json
 import re
+import sqlite3
+from contextlib import closing
 from functools import cache
 from pathlib import Path
 
@@ -11,6 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "data" if (REPO_ROOT / "data").exists() else REPO_ROOT / "industrial-ai-hackathon"
 INDEX_JSON = DATA_DIR / "regulations" / "index.json"
 INDEX_DIR = REPO_ROOT / "work" / "index"
+DB_PATH = REPO_ROOT / "work" / "regulations.db"
 OVERVIEW_CHARS = 3000
 
 
@@ -18,9 +24,24 @@ def slug(regulation: str) -> str:
     return "_".join(regulation.replace("/", " ").split())
 
 
+def query(sql: str, params: tuple = ()) -> list[sqlite3.Row]:
+    """Rows from the database, over a fresh read-only connection so that worker threads can call it too."""
+    if not DB_PATH.exists():
+        raise SystemExit(f"{DB_PATH} is missing: run `.venv/bin/python -m src.pipeline.db` first")
+    with closing(sqlite3.connect(f"{DB_PATH.as_uri()}?mode=ro", uri=True)) as conn:
+        conn.row_factory = sqlite3.Row
+        return conn.execute(sql, params).fetchall()
+
+
 @cache
 def catalogue() -> dict[str, dict]:
-    return {entry["regulation"]: entry for entry in json.loads(INDEX_JSON.read_text(encoding="utf-8"))}
+    """Regulation -> {"regulation", "title", "source_url", "versions": [{"role", "version_label", "status"}]}."""
+    entries = {row["regulation"]: {**dict(row), "versions": []}
+               for row in query("SELECT * FROM regulations ORDER BY rowid")}
+    for row in query("SELECT * FROM versions ORDER BY rowid"):
+        entries[row["regulation"]]["versions"].append(
+            {"role": row["role"], "version_label": row["version"], "status": row["status"]})
+    return entries
 
 
 def version_label(regulation: str, role: str = "base") -> str:
@@ -29,10 +50,12 @@ def version_label(regulation: str, role: str = "base") -> str:
 
 @cache
 def paragraphs(regulation: str, role: str = "base") -> tuple[dict, ...]:
-    path = INDEX_DIR / f"{slug(regulation)}_{role}.jsonl"
-    if not path.exists():
-        raise SystemExit(f"{path} is missing: run `.venv/bin/python -m src.pipeline.index_pdfs --role {role}` first")
-    return tuple(json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+    rows = query("SELECT regulation, version, role, file, paragraph, page, end_page, annex, text FROM paragraphs"
+                 " WHERE regulation = ? AND role = ? ORDER BY seq", (regulation, role))
+    if not rows:
+        raise SystemExit(f"{regulation} ({role}) has no paragraphs in {DB_PATH.name}: run "
+                         f"`.venv/bin/python -m src.pipeline.index_pdfs --role {role}`, then rebuild the database")
+    return tuple(dict(row) for row in rows)
 
 
 def paragraph_key(paragraph: object) -> str | None:
@@ -49,9 +72,9 @@ def paragraph_key(paragraph: object) -> str | None:
 def pages_by_paragraph(regulation: str, role: str = "base") -> dict[str, int]:
     """Paragraph key -> the page the paragraph starts on (the first occurrence wins)."""
     pages: dict[str, int] = {}
-    for record in paragraphs(regulation, role):
-        if key := paragraph_key(record["paragraph"]):
-            pages.setdefault(key, record["page"])
+    for row in query("SELECT key, page FROM paragraphs WHERE regulation = ? AND role = ? AND key IS NOT NULL"
+                     " ORDER BY seq", (regulation, role)):
+        pages.setdefault(row["key"], row["page"])
     return pages
 
 

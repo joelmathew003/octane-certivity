@@ -1,4 +1,6 @@
 """SQLite database over the regulations: catalogue, paragraphs (+ FTS5), obligations and the cases' expected answers.
+The pipeline reads everything through it (pipeline.regs); pipeline.run calls ensure_fresh() first, which rebuilds
+the database when one of its inputs is newer.
 
     .venv/bin/python -m src.pipeline.db                    # (re)build work/regulations.db
     .venv/bin/python -m src.pipeline.db search "rear position lamp height" --regulation "UN R48"
@@ -30,7 +32,7 @@ except ModuleNotFoundError as e:
     else:
         raise
 
-DB_PATH = regs.REPO_ROOT / "work" / "regulations.db"
+DB_PATH = regs.DB_PATH
 OBLIGATIONS_DIR = regs.REPO_ROOT / "work" / "obligations"
 CASES_DIR = regs.DATA_DIR / "cases"
 SECTION_TITLE_CHARS = 80
@@ -40,7 +42,8 @@ TABLE_SUFFIX = re.compile(r"\.?\s*Table\s+\S+$", re.IGNORECASE)
 SCHEMA = """
 CREATE TABLE regulations (
     regulation TEXT PRIMARY KEY,            -- "UN R148"
-    title TEXT NOT NULL
+    title TEXT NOT NULL,
+    source_url TEXT
 );
 CREATE TABLE versions (
     regulation TEXT NOT NULL REFERENCES regulations,
@@ -54,6 +57,7 @@ CREATE TABLE paragraphs (
     regulation TEXT NOT NULL,
     role TEXT NOT NULL,
     version TEXT NOT NULL,
+    file TEXT NOT NULL,                     -- the PDF the paragraph comes from
     seq INTEGER NOT NULL,                   -- order within the document
     paragraph TEXT NOT NULL,                -- label as indexed: "5.1.4.3", "Annex 6 Part 4 1"
     key TEXT,                               -- regs.paragraph_key(paragraph), what the scorer compares
@@ -61,6 +65,7 @@ CREATE TABLE paragraphs (
     section_title TEXT,
     page INTEGER NOT NULL,
     end_page INTEGER NOT NULL,
+    annex TEXT,                             -- "6" in Annex 6, NULL in the main body
     text TEXT NOT NULL,
     obligation INTEGER NOT NULL             -- 1 when the text says shall or must
 );
@@ -123,16 +128,18 @@ def build(path: Path = DB_PATH) -> Counter[str]:
     conn.executescript(SCHEMA)
 
     first_id: dict[tuple[str, str, str], int] = {}  # (regulation, role, key) -> first paragraph with that key
-    for regulation, entry in regs.catalogue().items():
-        conn.execute("INSERT INTO regulations VALUES (?, ?)", (regulation, entry["title"]))
+    for entry in json.loads(regs.INDEX_JSON.read_text(encoding="utf-8")):
+        regulation = entry["regulation"]
+        conn.execute("INSERT INTO regulations VALUES (?, ?, ?)", (regulation, entry["title"], entry.get("source_url")))
         for version in entry["versions"]:
             role = version["role"]
             conn.execute("INSERT INTO versions VALUES (?, ?, ?, ?)",
                          (regulation, role, version["version_label"], version.get("status")))
-            if not (regs.INDEX_DIR / f"{regs.slug(regulation)}_{role}.jsonl").exists():
+            index = regs.INDEX_DIR / f"{regs.slug(regulation)}_{role}.jsonl"
+            if not index.exists():
                 stats["versions not indexed"] += 1
                 continue
-            records = regs.paragraphs(regulation, role)
+            records = [json.loads(line) for line in index.read_text(encoding="utf-8").splitlines() if line.strip()]
             titles: dict[str, str] = {}
             for record in records:
                 if record["paragraph"] == section_of(record["paragraph"]):
@@ -141,10 +148,12 @@ def build(path: Path = DB_PATH) -> Counter[str]:
                 label, key = record["paragraph"], regs.paragraph_key(record["paragraph"])
                 section = section_of(label)
                 cursor = conn.execute(
-                    "INSERT INTO paragraphs (regulation, role, version, seq, paragraph, key, section, section_title,"
-                    " page, end_page, text, obligation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (regulation, role, record["version"], seq, label, key, section, titles.get(section),
-                     record["page"], record["end_page"], record["text"], int(bool(OBLIGATION.search(record["text"])))),
+                    "INSERT INTO paragraphs (regulation, role, version, file, seq, paragraph, key, section,"
+                    " section_title, page, end_page, annex, text, obligation)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (regulation, role, record["version"], record["file"], seq, label, key, section,
+                     titles.get(section), record["page"], record["end_page"], record["annex"], record["text"],
+                     int(bool(OBLIGATION.search(record["text"])))),
                 )
                 if key:
                     first_id.setdefault((regulation, role, key), cursor.lastrowid)
@@ -189,6 +198,20 @@ def build(path: Path = DB_PATH) -> Counter[str]:
     conn.close()
     tmp.replace(path)
     return stats
+
+
+def inputs() -> list[Path]:
+    """Every file the build reads, and this module (a schema change needs a rebuild too)."""
+    return [Path(__file__), regs.INDEX_JSON, *regs.INDEX_DIR.glob("*.jsonl"), *CASES_DIR.glob("*/expected.json"),
+            *OBLIGATIONS_DIR.glob("*.jsonl")]
+
+
+def ensure_fresh(path: Path = DB_PATH) -> None:
+    """Rebuild when the database is missing or older than one of its inputs, e.g. after `git pull` + index_pdfs."""
+    if path.exists() and path.stat().st_mtime >= max(p.stat().st_mtime for p in inputs()):
+        return
+    stats = build(path)
+    print(f"[db] rebuilt {path.relative_to(regs.REPO_ROOT)}: " + ", ".join(f"{k} {v}" for k, v in stats.items()))
 
 
 def connect(path: Path = DB_PATH) -> sqlite3.Connection:

@@ -22,10 +22,10 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 try:
-    from src.pipeline import llm, regs
+    from src.pipeline import db, llm, regs
 except ModuleNotFoundError as e:
     if e.name in ("src", "src.pipeline"):
-        from pipeline import llm, regs
+        from pipeline import db, llm, regs
     else:
         raise
 
@@ -215,6 +215,7 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()
 
+    db.ensure_fresh()
     llm.load_env()
     team_id = args.team_id or os.environ.get("TEAM_ID") or "team-00"
     raw_case_dir = args.case_dir
