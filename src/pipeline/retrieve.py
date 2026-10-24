@@ -27,10 +27,10 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 try:
-    from src.pipeline import db, llm, obligations, prompts, regs, review_agent, run
+    from src.pipeline import citations, db, llm, obligations, prompts, regs, review, review_agent, run
 except ModuleNotFoundError as e:
     if e.name in ("src", "src.pipeline"):
-        from pipeline import db, llm, obligations, prompts, regs, review_agent, run
+        from pipeline import citations, db, llm, obligations, prompts, regs, review, review_agent, run
     else:
         raise
 
@@ -95,6 +95,9 @@ def candidates(regulation: str, chosen: dict) -> list[dict]:
     return [dict(row) for row in rows]
 
 
+VARIANTS = {"agent": "obligations", "lenient": "obligations-lenient", "none": "obligations-no-review"}
+
+
 def requirement(regulation: str, row: dict) -> dict:
     source = {"regulation": regulation, "version": regs.version_label(regulation), "page": row["page"],
               "paragraph": row["paragraph"]}
@@ -107,8 +110,13 @@ def main() -> None:
     parser.add_argument("--team-id", default=None, help="default: TEAM_ID from .env")
     parser.add_argument("--regulations", nargs="+", default=None, help="skip selection and use these")
     parser.add_argument("--workers", type=int, default=4)
-    parser.add_argument("--no-review", action="store_true", help="submit every candidate (skip step 3)")
+    parser.add_argument("--reviewer", choices=list(VARIANTS), default="agent",
+                        help="step 3: the review agent (default), review.py's lenient batch review, or none")
+    parser.add_argument("--no-review", action="store_true", help="same as --reviewer none")
+    parser.add_argument("--build-missing", action="store_true",
+                        help="build the obligations of selected regulations that have none (paid, ~$2-4 each)")
     args = parser.parse_args()
+    reviewer = "none" if args.no_review else args.reviewer
 
     db.ensure_fresh()
     llm.load_env()
@@ -116,7 +124,7 @@ def main() -> None:
     case_dir = next((base / args.case_dir for base in (run.DATA_DIR, run.REPO_ROOT) if (base / args.case_dir).exists()),
                     args.case_dir).resolve()
     case_id = case_dir.name
-    variant = "obligations-no-review" if args.no_review else "obligations"
+    variant = VARIANTS[reviewer]
     out_dir = run.RUNS_DIR / case_id / variant
     out_dir.mkdir(parents=True, exist_ok=True)
     save = lambda name, data: (out_dir / name).write_text(json.dumps(data, indent=2, ensure_ascii=False),  # noqa: E731
@@ -128,10 +136,14 @@ def main() -> None:
     if unknown:
         raise SystemExit(f"not in regulations/index.json: {', '.join(sorted(unknown))}")
     missing = [regulation for regulation in selected if not names(regulation)]
-    if missing:
+    if missing and args.build_missing:
+        for regulation in missing:
+            obligations.build(regulation, args.workers)
+        db.ensure_fresh()
+    elif missing:
         quoted = " ".join(f'"{regulation}"' for regulation in missing)
-        raise SystemExit(f"no obligations yet for {', '.join(missing)}: "
-                         f"run `.venv/bin/python -m src.pipeline.obligations {quoted}` first")
+        raise SystemExit(f"no obligations yet for {', '.join(missing)}: run with --build-missing, or "
+                         f"`.venv/bin/python -m src.pipeline.obligations {quoted}` first")
     save("selected.json", selected)
 
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
@@ -145,23 +157,28 @@ def main() -> None:
               f"{','.join(chosen['vehicle_categories'])}  names: {', '.join(chosen['applies_to'])}", flush=True)
     save("candidates.json", pools)
 
-    if args.no_review:
-        kept = pools
+    everything = [requirement(regulation, row) for regulation in selected for row in pools[regulation]]
+    if reviewer == "none":
+        requirements = everything
+    elif reviewer == "lenient":
+        print(f"[review] review.py on {len(everything)} candidates ...", flush=True)
+        requirements, discarded = review.review_requirements(spec, everything, workers=args.workers)
+        save("discarded.json", discarded)
+        print(f"[review] kept {len(requirements)}, discarded {len(discarded)}")
     else:
-        print(f"[review] one review agent per regulation, {sum(map(len, pools.values()))} candidates ...", flush=True)
+        print(f"[review] one review agent per regulation, {len(everything)} candidates ...", flush=True)
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
             reviews = dict(zip(selected, pool.map(
                 lambda regulation: review_agent.select(regulation, pools[regulation], spec, images), selected)))
-        kept = {regulation: rows for regulation, (rows, _) in reviews.items()}
         save("review.json", {regulation: {"kept": rows, "tool_calls": calls}
                              for regulation, (rows, calls) in reviews.items()})
         for regulation, (rows, calls) in reviews.items():
             print(f"[review] {regulation:9s} kept {len(rows):4d} of {len(pools[regulation]):4d}"
                   f"  ({len(calls)} tool calls)")
-
-    rows = [(regulation, row) for regulation in selected for row in kept[regulation]]
-    requirements = [dict(requirement(regulation, row), id=f"R-{number:04d}")
-                    for number, (regulation, row) in enumerate(rows, 1)]
+        requirements = [requirement(regulation, row) for regulation in selected for row in reviews[regulation][0]]
+    requirements = [dict(item, id=f"R-{number:04d}") for number, item in enumerate(requirements, 1)]
+    requirements, findings, examples = citations.check_all(requirements)
+    print(citations.report(requirements, findings, examples))
     submission = {"team_id": team_id, "case_id": case_id, "requirements": requirements}
     run.SUBMISSIONS_DIR.mkdir(exist_ok=True)
     path = run.SUBMISSIONS_DIR / f"{case_id}.{variant}.json"

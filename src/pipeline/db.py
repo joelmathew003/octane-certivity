@@ -231,6 +231,24 @@ def get_paragraph(conn: sqlite3.Connection, regulation: str, paragraph: str, rol
     return dict(row) if row else None
 
 
+def ancestors(label: str) -> list[str]:
+    """A paragraph's parent labels: "5.5.1" -> 5, 5.5; "Annex 6 Part 4 1.2" -> Annex 6, Annex 6 Part 4, Annex 6 Part 4 1."""
+    head, number = re.match(r"((?:Annex \S+)?(?: ?Part \S+)?)\s*([\d.]*)", label).groups()
+    head, parts = head.strip(), [part for part in number.split(".") if part]
+    labels = [head.split(" Part ")[0], head] if head else []
+    labels += [f"{head} {'.'.join(parts[:i])}".strip() for i in range(1, len(parts))]
+    own = lookup_key(label)
+    return [parent for parent in dict.fromkeys(labels) if lookup_key(parent) != own]
+
+
+def children(conn: sqlite3.Connection, regulation: str, paragraph: dict, limit: int = 12,
+             role: str = "base") -> list[dict]:
+    """The sub-paragraphs right after a paragraph (labels that extend its label), looking at most `limit` rows ahead."""
+    rows = conn.execute("SELECT * FROM paragraphs WHERE regulation = ? AND role = ? AND seq > ? ORDER BY seq LIMIT ?",
+                        (regulation, role, paragraph["seq"], limit))
+    return [dict(row) for row in rows if row["paragraph"].startswith(paragraph["paragraph"] + ".")]
+
+
 def fts_query(text: str) -> str:
     """Any word may match and bm25 ranks paragraphs with more of them first; quoting keeps "6.10.4.2" or "-75 V"
     from being read as FTS5 syntax."""

@@ -22,10 +22,10 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 try:
-    from src.pipeline import db, llm, prompts, regs, review
+    from src.pipeline import citations, db, llm, prompts, regs, review
 except ModuleNotFoundError as e:
     if e.name in ("src", "src.pipeline"):
-        from pipeline import db, llm, prompts, regs, review
+        from pipeline import citations, db, llm, prompts, regs, review
     else:
         raise
 
@@ -202,6 +202,8 @@ def main() -> None:
         print(f"[review] kept {len(reviewed_reqs)} requirements, pruned {len(discarded)} non-binding clauses")
         submission["requirements"] = reviewed_reqs
 
+    submission["requirements"], findings, examples = citations.check_all(submission["requirements"])
+    print(citations.report(submission["requirements"], findings, examples))
     SUBMISSIONS_DIR.mkdir(exist_ok=True)
     path = SUBMISSIONS_DIR / f"{case_id}.json"
     path.write_text(json.dumps(submission, indent=2, ensure_ascii=False), encoding="utf-8")

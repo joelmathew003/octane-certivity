@@ -56,16 +56,6 @@ def tools() -> list[dict]:
             for name, properties in TOOL_INPUTS.items()]
 
 
-def ancestors(label: str) -> list[str]:
-    """A paragraph's parent labels: "5.5.1" -> 5, 5.5; "Annex 6 Part 4 1.2" -> Annex 6, Annex 6 Part 4, Annex 6 Part 4 1."""
-    head, number = re.match(r"((?:Annex \S+)?(?: ?Part \S+)?)\s*([\d.]*)", label).groups()
-    head, parts = head.strip(), [p for p in number.split(".") if p]
-    labels = [head.split(" Part ")[0], head] if head else []
-    labels += [f"{head} {'.'.join(parts[:i])}".strip() for i in range(1, len(parts))]
-    own = db.lookup_key(label)
-    return [parent for parent in dict.fromkeys(labels) if db.lookup_key(parent) != own]
-
-
 class Review:
     """One regulation's candidates, and the tools the agent calls on the database. Build it in the thread that uses it:
     it holds its own database connection."""
@@ -86,15 +76,13 @@ class Review:
         for number, row in enumerate(self.candidates):
             if row["paragraph"] != current:
                 current = row["paragraph"]
-                parents = " > ".join(self.heading(label) for label in ancestors(current)[-2:])
+                parents = " > ".join(self.heading(label) for label in db.ancestors(current)[-2:])
                 lines.append(f"\n## {current} (page {row['page']})" + (f", under {parents}" if parents else ""))
             lines.append(f"[{number}] ({row['kind']}) {row['text']}")
         return "\n".join(lines).strip()
 
     def children(self, found: dict) -> list[dict]:
-        rows = self.conn.execute("SELECT paragraph, text FROM paragraphs WHERE regulation = ? AND role = 'base'"
-                                 " AND seq > ? ORDER BY seq LIMIT ?", (self.regulation, found["seq"], SUB_PARAGRAPHS))
-        return [dict(row) for row in rows if row["paragraph"].startswith(found["paragraph"] + ".")]
+        return db.children(self.conn, self.regulation, found, SUB_PARAGRAPHS)
 
     def call(self, name: str, arguments: dict) -> str:
         self.calls.append({"tool": name, **arguments})
@@ -104,7 +92,7 @@ class Review:
         found = db.get_paragraph(self.conn, self.regulation, paragraph)
         if not found:
             return f"{self.regulation} has no paragraph {paragraph}"
-        parents = "; ".join(self.heading(label) for label in ancestors(found["paragraph"])) or "none"
+        parents = "; ".join(self.heading(label) for label in db.ancestors(found["paragraph"])) or "none"
         subs = [f"{row['paragraph']} | {row['text'][:150]}" for row in self.children(found)]
         return "\n".join([f"[p{found['page']}] {found['paragraph']} | {found['text']}", f"Parents: {parents}",
                           "Sub-paragraphs:" + ("" if subs else " none"), *subs])

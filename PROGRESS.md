@@ -1,194 +1,162 @@
 # Progress report: Octane × Certivity
 
-Date: 2026-10-24 (Saturday)
+Updated: 2026-10-24, 19:30 (Saturday)
 
-Status: The pipeline operates from start to end on the dev case. The first live run gave a page-level F1 of 0.909.
+Status: The vote of three methods is the best result. Its requirement F1 on the platform is 59.1. The best result before the vote was 52.8.
 
-## 1. Scope
+## 1. Scores
 
-This file tells the team which work is complete and which work is not complete.
-It also gives the procedures to set up the pipeline and to run it.
+### 1.1 Platform scores (dev case "Worked example: vehicle rear lamp")
 
-## 2. Summary
+Only the platform measures the requirement level. The platform accepts 5 uploads in each hour.
 
-- The pipeline reads a product specification. It writes the requirements that apply to the product under UN Regulations.
-- The pipeline uses the Claude API for two tasks only: to select the regulations and to write the requirements.
-- All other steps do not use a large language model (LLM). They are deterministic and free.
-- The first live run on `dev-rear-lamp` cost $2.51.
+| Upload | Method | Reqs | Req P | Req R | Req F1 | Req F2 | Page F1 | Regulation F1 |
+|---|---|---|---|---|---|---|---|---|
+| 17:49 | Full read + lenient review (`run.py`, from Joel's computer) | 185 | 53.5 | 52.1 | 52.8 | 52.4 | **92.6** | 100 |
+| 18:10 | Full read, other run (from Joel's computer) | 208 | 50.0 | 54.7 | 52.3 | 53.7 | 89.1 | 100 |
+| 18:23 | Obligation path + lenient review (`review.py`) | 399 | 37.6 | **78.9** | 50.9 | 64.7 | 77.9 | 100 |
+| 18:49 | Obligation path + review agent v1 | 172 | **54.7** | 49.5 | 51.9 | 50.4 | 84.6 | 100 |
+| 19:21 | Vote: 2 of 3 (agent v1, lenient review, full read) | 250 | 52.0 | 68.4 | **59.1** | 64.4 | 90.9 | 100 |
+| 19:21 | Vote: 2 of 3 (agent v2, lenient review, full read) | 280 | 48.2 | 71.1 | 57.4 | **64.9** | 87.0 | 100 |
 
-## 3. Repository layout
+- For F1, the vote with the strict agent v1 is the best. For F2, the vote with agent v2 is the best.
+- A stricter agent makes a better vote: the lenient review gives the recall, so the agent must give the precision.
 
-| Path | Contents | In git |
-|---|---|---|
-| `data/` | Certivity kit: cases, schemas, tools, `regulations/index.json` | Yes |
-| `data/regulations/pdf/` | Regulation PDFs | No |
-| `data/subgoal/dev/*.pdf` | Old and new PDF for the sub-goal | No |
-| `src/pipeline/` | Our code | Yes |
-| `work/index/` | Paragraph index, one JSONL file for each regulation | No |
-| `work/regulations.db` | SQLite database | Yes |
-| `work/runs/` | LLM answers for each run | No |
-| `submissions/` | Submission files | No |
-| `.env` | API key and team ID (secret) | No |
-| `architecture.excalidraw` | Design diagram | Yes |
+### 1.2 Offline scores (every file in `submissions/`)
 
-## 4. Work that is complete
+| File `dev-rear-lamp.<name>.json` | Method | Reqs | Proxy P | Proxy R | Proxy F1 | Page F1 | Cost |
+|---|---|---|---|---|---|---|---|
+| `dev-rear-lamp.json` | Full read (`run.py`, before the lenient review existed) | 182 | 42.9 | 41.1 | 41.9 | 0.909 | $2.51 |
+| `obligations-joel-review` | Obligation path + lenient review | 399 | 38.8 | 81.6 | 52.6 | 0.779 | $1.74 |
+| `obligations-no-review` | Obligation path, all candidates | 1,137 | 14.3 | 85.8 | 24.6 | 0.510 | $0.17 |
+| `obligations-agent-v1` | Obligation path + review agent v1 | 172 | 52.3 | 47.4 | 49.7 | 0.846 | $1.16 |
+| `obligations-agent-v2` | Obligation path + review agent v2 | 242 | 49.2 | 62.6 | 55.1 | 0.814 | $1.26 |
+| `vote-agent1-lenient-fullread` | Vote: 2 of 3 (agent v1, lenient review, full read) | 250 | 54.8 | 72.1 | **62.3** | 0.909 | $0 |
+| `vote-agent2-lenient-fullread` | Vote: 2 of 3 (agent v2, lenient review, full read) | 280 | 51.4 | 75.8 | 61.3 | 0.870 | $0 |
 
-### 4.1 Regulation data
+- Proxy: our requirements and the expected ones are paired one to one in each cited paragraph. A pair counts when the text similarity is 0.65 or more. On the three uploads of files that we have (399, 172 and 250 requirements), the proxy is from 2 points below to 4 points above the platform. Use it to compare files, not as a score.
+- Page F1: `data/tools/score_local.py`.
+- A vote costs $0. It uses the outputs that the other runs made.
 
-- We downloaded all 94 PDFs: 56 base versions, 36 latest versions and 2 sub-goal PDFs.
-- The SHA-256 values of all PDFs are correct.
+NOTE: The proxy, the keep rates in the review prompt and all dev scores use the answer key of the dev case. Expect a lower score on the held-out case.
 
-### 4.2 Paragraph index (`src/pipeline/index_pdfs.py`)
+### 1.3 Cost
 
-1. The script reads each PDF with PyMuPDF. It does not use an LLM.
-2. The script removes the page headers.
-3. The script starts a new paragraph at each paragraph number, annex heading and part heading.
-4. The script writes one JSON line for each paragraph: label, start page, end page and text.
+- Obligations for the 4 dev regulations (one time): $11.79.
+- Total use of the hackathon credits until now: approximately $18.60 of $150.
 
-- Annex labels have the same format as the expected files, for example `Annex 6 Part 4 1`.
-- The index has 28,185 paragraphs for the 56 base versions.
-- Verification: All 190 citations in `data/cases/dev-rear-lamp/expected.json` go to the correct paragraph and page.
+## 2. Architecture now
 
-NOTE: The latest versions are not in the index.
+The diagram `architecture.excalidraw` shows it. Section 4 is a table of the inputs and outputs of each step. Section 6 shows each module.
 
-### 4.3 Regulation database (`src/pipeline/db.py`)
+1. Data prep (one time, no LLM): `index_pdfs.py` splits the PDFs into paragraphs. `db.py` loads everything into `work/regulations.db`. All steps read the database.
+2. Obligation builder (one time for each regulation, Claude): `obligations.py` writes each obligation of a regulation as one requirement, with tags.
+3. Path A, full read (`run.py`): Claude selects the regulations, reads each one in full and writes the requirements. The lenient review (`review.py`) prunes them.
+4. Path B, obligations (`retrieve.py`): Claude picks the product's tags (step 1). SQL takes the candidates (step 2). The review agent (`review_agent.py`) or the lenient review keeps what binds the product (step 3).
+5. Vote (`vote.py`, no LLM): keep a candidate when 2 of 3 voters agree.
+6. Citation check (`citations.py`, no LLM): it fixes version and page, and it reports numbers that are not in the cited paragraph. `run.py`, `retrieve.py` and `vote.py` run it before they write a file.
 
-- The database is `work/regulations.db` (approximately 20 MB). Git has a copy of it.
-- The build does not use an LLM. It takes less than 1 second.
-- The build always starts from zero and reads only files. Thus, you can delete the database and make it again.
-- The build also reads the output of the obligation builder (`work/obligations/*.jsonl`). Thus, a new build does not delete paid LLM output.
+## 3. Review of the architecture
 
-| Table | Rows | Contents |
-|---|---|---|
-| `regulations` | 56 | Name and title |
-| `versions` | 92 | Version label of the base and latest versions |
-| `paragraphs` | 28,185 | Label, scorer key, section, section title, pages, text, "shall/must" flag |
-| `paragraphs_fts` | 28,185 | Full-text index of the paragraphs (SQLite FTS5) |
-| `expected` | 190 | Expected requirements of each case, with the paragraph that they cite |
-| `obligations`, `obligation_tags` | 0 | Output of the obligation builder (not complete) |
+1. The requirement level is the weak point. The regulation level is 100% and the page level is approximately 90%.
+2. Each method alone gives a requirement F1 of 51 to 53. The full read writes fewer requirements than the experts on split paragraphs (tables, lists). The obligation path splits like the experts, but its reviews keep too much or too little.
+3. The vote is the strongest step that we found. A strict voter, a lenient voter and an independent method together are better than each one alone (platform F1 59.1 against 52.8).
+4. The review agent did not call its tools in 3 runs. It decides from the candidate list. The tools are ready, but they add no value now.
+5. Step 1 (product profile) is not deterministic. Two runs gave 167 and 188 candidates for UN R150. Thus the voters must use the same pool. Run step 1 one time and keep its output.
+6. The full read and the lenient review do not see the drawing. The drawing has the facts that decide categories (for example "60 to 185 cd" = stop lamp S1).
+7. The citation check shows that the obligation path is more faithful: approximately 97% of its requirements are clean, against 81% for the full read.
+8. On Sunday, a run needs several commands. One command for all steps decreases the risk of an error.
 
-- The functions `get_paragraph()` and `search()` are ready for the review agent.
+## 4. Proposed next architecture
 
-### 4.4 Pipeline (`src/pipeline/run.py`, `src/pipeline/llm.py`)
+Section 5 of the diagram (gray box) shows it.
 
-1. Claude reads the regulation catalogue and the specification. Claude selects the applicable regulations.
-2. Claude reads each selected regulation in full. These calls run in parallel.
-3. Claude writes one requirement for each obligation.
-4. The code sets the page of each citation from the paragraph index.
-5. The code writes `submissions/<case>.json`.
-6. The code runs `validate.py`. If the case has an `expected.json` file, the code also runs `score_local.py`.
-
-- `llm.py` uses the model `claude-opus-5-5` with structured JSON output.
-- `llm.py` reads the API key from `.env` in the repository root.
-
-### 4.5 First live run (dev-rear-lamp)
-
-- Claude selected 4 regulations: UN R148, UN R150, UN R48 and UN R10. The expected file uses the same 4 regulations.
-- The run wrote 182 requirements. The expected file has 190 requirements.
-- The submission file is valid.
-
-| Level | Precision | Recall | F1 |
+| Idea | Why | Cost | Status |
 |---|---|---|---|
-| Regulation | 1.000 | 1.000 | 1.000 |
-| Page | 0.877 | 0.943 | 0.909 |
-| Paragraph (our calculation) | 0.653 (94/144) | 0.790 (94/119) | 0.715 |
+| Vote of 3 voters | Platform F1 59.1 against 52.8 | $0 | Built (`vote.py`) |
+| Citation check | Fixes pages and versions, flags invented numbers | $0 | Built (`citations.py`) |
+| Step 1 one time, kept for all voters | All voters see the same pool | $0 | Not built |
+| One command for Sunday (`ensemble`) | Fewer manual steps | $0 | Not built |
+| Build missing obligations automatically | The held-out case can need new regulations | ~$2–4 per regulation | Built (`retrieve.py --build-missing`) |
+| Offline proxy judge in the repository | Tune without platform uploads | $0 | Script only, not in the repository |
+| Product facts from the drawing callouts | Finer tags (S1, R1, class IA) | Small | Not built |
+| Recall sweep with `search_db` | Find obligations that the filter missed | ~$1 per run | Not built |
 
-- Only the platform calculates the requirement-level score.
-- Cost: $2.51. Cache writes caused $1.82 of this cost. Each regulation is read one time only, so the cache gives no benefit.
-
-### 4.6 Findings from the expected answers
-
-1. The experts cite a small number of sections in each regulation. Examples: UN R48 sections 5 and 6, UN R148 sections 3 to 5.
-2. The experts almost never cite these sections: definitions, application for approval, approval, conformity of production, transitional provisions and penalties.
-3. 19 cited paragraphs do not contain "shall" or "must". Thus, a filter on "shall" alone decreases recall.
-4. Examples of item 3: "may ... provided" paragraphs, and sub-items such as "In height: ..." below a parent paragraph that contains "shall".
-5. Most extra paragraphs in our run are near the correct paragraph. Example: We cited UN R48 5.5.1 to 5.5.3, but the experts cite 5.5.5.
-6. The paragraph index has an error in UN R10. Lines such as "12 V system" and "75 MHz" start false paragraphs. This error has no effect on the dev case.
-
-### 4.7 Diagram
-
-- `architecture.excalidraw` shows the status of each box.
-- A green outline shows that the work is complete.
-- A red dotted outline shows that the work is not complete.
-
-## 5. Work that is not complete
-
-| Item | Description | Uses Claude |
-|---|---|---|
-| Obligation builder | Split each "shall" paragraph into single obligations. Add tags: applies_to, kind, vehicle category. Write the output to `work/obligations/*.jsonl`. | Yes (approximately $15 to $25 for 56 regulations) |
-| Product profile (step 1) | Step 1 selects the regulations but does not write the product profile. Step 2 needs the profile. | Yes |
-| SQL filter (step 2) | Select the obligations with SQL. Do not use top-k similarity search. | No |
-| Review agent (step 3) | Claude with the tools `get_paragraph`, `search_db` and `check_citation`. | Yes |
-| Citation check (step 4) | Make sure that each number in a requirement is in the cited paragraph. Reject paragraph labels that are not in the index. | No |
-| Upload | Set `TEAM_ID` in `.env`. Upload the submission to the platform. | No |
-| Sub-goal tool | Index the old and new PDFs. Align the paragraphs by number. Find the differences. Find the requirements in `requirements_old.json` that cite a changed paragraph. Claude writes only `new_text` and `reason`. | Yes (small) |
-| Cache markers | Remove the cache markers in `run.py`. This decreases the cost by approximately $0.35 for each run. | No |
-| UN R10 index error | Correct the paragraph pattern in `index_pdfs.py` (refer to 4.6, item 6). | No |
-
-## 6. Procedures
-
-### 6.1 Set up a new computer
-
-CAUTION: DO NOT PUT THE PDFS, `.env` OR `work/index/` IN GIT. THE DATA LICENCE AND THE API KEY DO NOT PERMIT THIS.
-
-1. Pull the latest version of the repository: `git pull`
-2. Make the Python environment: `uv venv .venv --python 3.12`
-3. Install the packages: `uv pip install --python .venv/bin/python -r requirements.txt`
-4. Download the PDFs: `.venv/bin/python data/tools/fetch_regulations.py`
-5. Make sure that the PDFs are in `data/regulations/pdf/` and `data/subgoal/dev/`.
-6. Make the file `.env` in the repository root. Write these two lines in it:
-   ```
-   ANTHROPIC_API_KEY=<key>
-   TEAM_ID=<team id>
-   ```
-7. Set the file permissions: `chmod 600 .env`
-8. Make the paragraph index: `.venv/bin/python -m src.pipeline.index_pdfs`
-
-NOTE: Step 9 is necessary only if `db.py` or the index changed. Git has a copy of the database.
-
-9. Make the database: `.venv/bin/python -m src.pipeline.db`
-
-### 6.2 Run the pipeline on a case
-
-NOTE: Each run costs approximately $2.50 from the hackathon credits.
-
-1. Run the pipeline: `.venv/bin/python -m src.pipeline.run cases/dev-rear-lamp`
-2. Examine the output files:
-   - `submissions/<case>.json`: the submission file.
-   - `work/runs/<case>/selected.json`: the regulations that Claude selected, with the reasons.
-   - `work/runs/<case>/extract_<regulation>.json`: the requirements for each regulation.
-3. To skip step 1 and use a fixed set of regulations, add `--regulations "UN R48" "UN R148"` to the command.
-
-### 6.3 Query the database
-
-1. To search the paragraph text: `.venv/bin/python -m src.pipeline.db search "rear fog lamp" --regulation "UN R48"`
-2. To open an SQL shell: `.venv/bin/python -m sqlite3 work/regulations.db`
-
-NOTE: You can also open `work/regulations.db` with the VS Code extension "SQLite Viewer" or with DBeaver.
-
-NOTE: In the table `paragraphs_fts`, the columns `paragraphs_fts` and `rank` are internal columns. They do not contain data.
-
-3. After a new build, open the database again. The build replaces the file.
-
-### 6.4 Update the database in git
-
-1. Make the database again: `.venv/bin/python -m src.pipeline.db`
-2. Commit `work/regulations.db`.
-
-CAUTION: THIS IS A SHARED REPOSITORY. TELL THE TEAM BEFORE YOU PUSH TO `main`.
-
-## 7. Important dates
-
-- Sunday 2026-10-25, in the morning: Certivity releases the held-out case.
-- When Certivity releases the case, do `git pull`. Then run `fetch_regulations.py` again.
-- The platform accepts 5 uploads in each hour. For the held-out case, only the last valid upload counts.
-
-## 8. Git history
+## 5. Change log
 
 | Commit | Author | Change |
 |---|---|---|
-| `49ff859` | ishwargov | Pipeline: index, regulation catalogue, LLM wrapper, run script |
+| `49ff859` | ishwargov | Pipeline: index, catalogue, LLM wrapper, `run.py` |
 | `eb0d10e` | Joel Mathew | New layout: `data/` and `src/` |
-| `e13b744` | ishwargov | Database module and design diagram |
+| `e13b744` | ishwargov | `db.py` and the design diagram |
 | `dc46da8` | ishwargov | `work/regulations.db` in git |
-| `42226eb` | ishwargov | Diagram: status colours (green = complete, red dotted = not complete) and fonts |
+| `42226eb` | ishwargov | Diagram fonts and status colours |
+| `debd403` | ishwargov | This file, first version |
+| `04c1e7c` | ishwargov | All reads go through the database |
+| `2b6e692` | Joel Mathew | Lenient review (`review.py`) in `run.py` |
+| `2ca19d6` | ishwargov | Obligation builder, prompts in `src/pipeline/prompts/` |
+| `4480e3c` | ishwargov | Obligations for UN R148, R150, R48 and R10 |
+| `90b21c6` | Joel Mathew | Prompts of `review.py` in files |
+| `71fed5c` | ishwargov | Obligation path (`retrieve.py`) |
+| `3761c46` | ishwargov | Diagram status update |
+| `f9c1ffb` | ishwargov | New drawing for the dev case (callouts) |
+| `9157e0d` | ishwargov | Review agent (`review_agent.py`) and tool loop in `llm.py` |
+| `acb9b6f` | ishwargov | Diagram section 4 |
+| not committed | — | Review agent prompt v2 (keeps markings and test parameters) |
+| not committed | — | `vote.py`, `citations.py`; `retrieve.py --reviewer` and `--build-missing` |
+| not committed | — | Diagram: sections 4 to 6 rebuilt; steps 3 and 4 marked built |
+| not committed | — | This file |
+
+## 6. Work that is not complete
+
+| Item | Description |
+|---|---|
+| Strict agent in the vote | Keep the review agent strict (v1 prompt) when it is a voter: the vote with v1 has the best F1 |
+| Step 1 one time | Keep the profile of the case and give it to all voters |
+| One command for Sunday | Run select, full read, obligation path, both reviews, vote and citation check |
+| Drawing for all steps | Give the drawing to the full read and the lenient review |
+| Sub-goal | Compare old and new regulation versions; not started |
+| UN R10 index error | Lines such as "12 V system" start false paragraphs in `index_pdfs.py` |
+
+## 7. Procedures
+
+### 7.1 Set up a computer
+
+1. Pull the repository: `git pull`
+2. Make the environment: `uv venv .venv --python 3.12`
+3. Install the packages: `uv pip install --python .venv/bin/python -r requirements.txt`
+4. Download the PDFs: `.venv/bin/python data/tools/fetch_regulations.py`
+5. Write `.env` in the repository root, with `ANTHROPIC_API_KEY=<key>` and `TEAM_ID=team-16`.
+6. Make the paragraph index: `.venv/bin/python -m src.pipeline.index_pdfs`
+
+NOTE: The database rebuilds itself when an input is newer. Git has a copy of it.
+
+### 7.2 Make the vote file for a case
+
+CAUTION: STEPS 1 TO 4 USE THE HACKATHON CREDITS (APPROXIMATELY $5 FOR THE DEV CASE).
+
+1. Run the full read without its review: `.venv/bin/python -m src.pipeline.run cases/<case> --no-review`
+2. Note the regulations that it selected (`work/runs/<case>/selected.json`).
+3. Run the obligation path with the review agent: `.venv/bin/python -m src.pipeline.retrieve cases/<case> --regulations <the same regulations> --build-missing`
+4. Run the obligation path with the lenient review: `.venv/bin/python -m src.pipeline.retrieve cases/<case> --regulations <the same regulations> --reviewer lenient`
+5. Run the obligation path without a review, to get the pool: `.venv/bin/python -m src.pipeline.retrieve cases/<case> --regulations <the same regulations> --reviewer none`
+6. Vote (free):
+   ```
+   .venv/bin/python -m src.pipeline.vote cases/<case> --pool submissions/<case>.obligations-no-review.json \
+       --voters submissions/<case>.obligations.json submissions/<case>.obligations-lenient.json \
+       --paragraph-voters submissions/<case>.json --min-votes 2
+   ```
+7. Upload `submissions/<case>.vote.json`.
+
+NOTE: Steps 3 to 5 run step 1 again each time, and step 1 is not deterministic. Until step 1 runs one time only, make the pool from the candidates of all runs.
+
+### 7.3 Check the citations of a file
+
+1. Report: `.venv/bin/python -m src.pipeline.citations submissions/<file>.json`
+2. Fix version and page in the file: add `--fix`.
+
+## 8. Important dates
+
+- Sunday 2026-10-25, in the morning: Certivity releases the held-out case. Do `git pull`, then run `fetch_regulations.py` and `index_pdfs` again.
+- For the held-out case, only the last valid upload counts. Do not upload a worse file at the end.
+- Finalists pitch on Sunday from 15:00.
