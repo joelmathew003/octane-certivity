@@ -71,7 +71,17 @@ def probability_scores(
     paragraph_voters: list[list[dict]],
 ) -> list[tuple[dict, float]]:
     """Compute calibrated probability score P(keep | candidate) in [0, 1] across all requirement and paragraph voters."""
+    conn = db.connect()
     requirement_sets = [{requirement_key(item) for item in voter} for voter in voters]
+    strict_paras = {paragraph_key(item) for item in voters[0]} if voters else set()
+    table_paras = set()
+    for item in pool:
+        pk = paragraph_key(item)
+        if pk not in table_paras:
+            found = db.get_paragraph(conn, pk[0], pk[1])
+            if found and tables.CAPTION.search(found["text"]):
+                table_paras.add(pk)
+
     para_maps: list[tuple[dict[tuple[str, str], list[str]], bool]] = []
     for pv in paragraph_voters:
         by_para: dict[tuple[str, str], list[str]] = defaultdict(list)
@@ -94,9 +104,20 @@ def probability_scores(
     scored = []
     for item in pool:
         rk = requirement_key(item)
+        pk = paragraph_key(item)
+        s_strict = 1.0 if (requirement_sets and rk in requirement_sets[0]) else 0.0
         prob = sum(w * (1.0 if rk in s else 0.0) for w, s in zip(req_weights, requirement_sets))
-        prob += sum(w * paragraph_voter_score(item, by_para, is_fl)
-                    for w, (by_para, is_fl) in zip(para_weights, para_maps))
+        for w, (by_para, is_fl) in zip(para_weights, para_maps):
+            texts = by_para.get(pk, [])
+            if not texts:
+                continue
+            best_sim = max(text_similarity(item["text"], t) for t in texts) if is_fl else 0.0
+            # When the strict agent accepted other rows in this table paragraph but rejected this specific row,
+            # do not let paragraph-level voters override the row rejection unless fullread wrote it verbatim.
+            if pk in table_paras and pk in strict_paras and s_strict == 0.0 and best_sim < 0.75:
+                prob += w * (0.20 if is_fl else 0.0)
+            else:
+                prob += w * paragraph_voter_score(item, by_para, is_fl)
         scored.append((item, prob))
     return scored
 

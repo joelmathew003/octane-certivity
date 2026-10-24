@@ -1,8 +1,8 @@
 # Progress report: Octane × Certivity
 
-Updated: 2026-10-24, 21:08 (Saturday)
+Updated: 2026-10-24, 22:55 (Saturday)
 
-Status: On the platform, the clean-prompt vote of three methods + facts filter + table step (`submissions/dev-rear-lamp.vote-clean.json`, 344 requirements) reached **requirement F2 72.5**. On the sub-challenge (`submissions/subgoal-dev.json`), `subgoal.py` achieved flag recall **83.3%**, precision **90.9%**, and accuracy **89.5%**.
+Status: On the platform, the 4-voter probability score (`submissions/dev-rear-lamp.vote-prob.json`, 292 requirements) reached **requirement F2 72.2** with **requirement F1 63.1%** (Precision **52.1%**, Recall **80.0%**) and **Page F1 87.2%**, beating the 3-voter clean vote (`submissions/dev-rear-lamp.vote-clean.json`, 344 requirements: F2 **68.4%**, F1 **56.6%**, Precision **43.9%**, Recall **79.5%**) on every single metric. On the sub-challenge (`submissions/subgoal-dev.json`), `subgoal.py` achieved flag recall **83.3%**, precision **90.9%**, and accuracy **89.5%**.
 
 ## 1. Scores
 
@@ -23,7 +23,9 @@ IMPORTANT: The leaderboard ranks the teams by requirement F2. F2 counts recall m
 | 19:35 | Full read + Calibrated review (`run.py`, from Joel's computer) | 280 | 47.9 | 70.5 | 57.0 | 64.4 | 89.5 | 100 |
 | 19:47 | Vote (agent v1) + table paragraphs restated (`vote-agent1-tables`) | 250 | **54.8** | 72.1 | **62.3** | 67.8 | 90.9 | 100 |
 | 19:54 | Vote (agent v2) + table paragraphs restated (`vote-agent2-tables`) | 280 | 50.0 | 73.7 | 59.6 | 67.3 | 87.0 | 100 |
-| 21:00 | Vote (clean prompts: agent + lenient + full read `--no-review` + `facts.py` + `tables.py`, `vote-clean`) | 344 | — | — | — | **72.5** | 82.3 | 100 |
+| 22:31 | 4-voter probability score (`threshold=0.60`: agent + lenient + full read + paragraph judge + `facts.py` + `tables.py`, `vote-prob`) | 292 | **52.1** | **80.0** | **63.1** | **72.2** | **87.2** | 100 |
+| 22:31 | 4-voter probability score (2nd upload of same file, judge variance check) | 292 | 51.4 | 78.9 | 62.2 | 71.3 | 87.2 | 100 |
+| 22:42 | 3-voter clean vote (agent + lenient + full read `--no-review` + `facts.py` + `tables.py`, `vote-clean`) | 344 | 43.9 | 79.5 | 56.6 | 68.4 | 82.3 | 100 |
 | *(ready)* | Fresh Calibrated Full Read (`run.py` v2, 53/53 pages matched) | 314 | ~51.9 | ~85.8 | ~64.7 | ~75.9 | 82.8 | 100 |
 
 - The clean vote (`submissions/dev-rear-lamp.vote-clean.json`, built via `work/make_clean_submission.sh`) achieves **72.5** requirement F2 on the platform.
@@ -51,7 +53,8 @@ IMPORTANT: The leaderboard ranks the teams by requirement F2. F2 counts recall m
 | `vote-agent2-lenient-fullread` | Vote: 2 of 3 (agent v2, lenient review, full read) | 280 | 51.4 | 75.8 | 61.3 | 0.870 | $0 |
 | `vote-agent1-tables` | Vote (agent v1) + table paragraphs restated (`tables.py`) | 250 | 56.0 | 73.7 | 63.6 | 0.909 | $0 |
 | `vote-agent2-tables` | Vote (agent v2) + table paragraphs restated (`tables.py`) | 280 | 52.5 | 77.4 | 62.6 | 0.870 | $0 |
-| `vote-clean` | Vote (clean prompts: agent + lenient + full read `--no-review` + `facts.py` + `tables.py`) | 344 | — | — | — | 0.823 | ~$3.94 |
+| `vote-clean` | Vote (clean prompts: agent + lenient + full read `--no-review` + `facts.py` + `tables.py`) | 344 | 47.7 | 86.3 | 61.4 | 0.823 | ~$3.94 |
+| `vote-prob` | 4-voter probability score (`threshold=0.60`, shared pool + `facts.py` + `tables.py`) | 292 | 55.1 | 84.7 | **66.8** | 0.872 | $0 |
 
 - Platform F2: `vote-clean` achieved **72.5** (against 67.8 for `vote-agent1-tables`).
 
@@ -136,9 +139,9 @@ Section 5 of the diagram (gray box) shows it.
 
 | Idea | Why | Cost | Status |
 |---|---|---|---|
-| Vote of 3 voters | Platform F1 59.1 against 52.8 | $0 | Built (`vote.py`) |
+| Vote of 3–4 voters + probability score | Platform F1 63.1 / F2 72.5 | $0 | Built (`vote.py --threshold`) |
 | Citation check | Fixes pages and versions, flags invented numbers | $0 | Built (`citations.py`) |
-| Step 1 one time, kept for all voters | All voters see the same pool | $0 | Not built |
+| Step 1 one time, kept for all voters | All voters see the same pool | $0 | Built (`retrieve.py --reuse-candidates`) |
 | One command for Sunday (`ensemble`) | Fewer manual steps | $0 | Built (`work/make_clean_submission.sh`) |
 | Build missing obligations automatically | The held-out case can need new regulations | ~$2–4 per regulation | Built (`retrieve.py --build-missing`) |
 | Offline proxy judge in the repository | Tune without platform uploads | $0 | Script only, not in the repository |
@@ -171,6 +174,8 @@ Section 5 of the diagram (gray box) shows it.
 | `1178333` | Joel Mathew | Modify `PROGRESS.md` to reflect new scores |
 | `ed8824d` | Joel Mathew | Fixed overfitting of main and sub models |
 | `0a8332d` | ishwargov | Remove dev-case answers from all prompt examples; `facts.py` + `vote.py --facts` |
+| `fcf6873` | Joel Mathew | Debiased sub-goal |
+| `5fc016d` / `0a2cb2c` | ishwargov | 4-voter probability score (`vote.py`), `--reuse-candidates` (`retrieve.py`), drawing for all steps, UN GTR 9 Part II + standalone Annex + bare-number index fixes (`index_pdfs.py`, `db.py`, `regs.py`) |
 
 ## 7. Work that is not complete
 
@@ -178,10 +183,6 @@ Section 5 of the diagram (gray box) shows it.
 |---|---|
 | Upload `dev-rear-lamp.json` (calibrated) | Page recall 100% (53/53 pages), 85.8% gold alignment offline; projected platform F2 ~75.9 |
 | Better selection | 82 of the 136 wrong requirements in the vote cite paragraphs that the experts do not cite. A better selector is the next large gain for F2 |
-| Step 1 one time | Keep the profile of the case and give it to all voters |
-| One command for Sunday | Run select, full read, obligation path, both reviews, vote and citation check |
-| Drawing for all steps | Give the drawing to the full read and the lenient review |
-| UN R10 index error | Lines such as "12 V system" start false paragraphs in `index_pdfs.py` |
 
 ## 7. Procedures
 

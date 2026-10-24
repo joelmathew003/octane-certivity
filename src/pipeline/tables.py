@@ -22,7 +22,7 @@ except ModuleNotFoundError as e:
     else:
         raise
 
-MIN_GROUP = 3      # add the paragraph's sentences when at least this many requirements cite it
+MIN_GROUP = 1      # add the paragraph's sentences when at least this many requirements cite it
 REPLACE_OVER = 10  # and drop the rows when there are at least this many
 CAPTION = re.compile(r"\bTable [A-Z]?\d+[a-z]?(?:[-.]\d+)?\s+(?=[A-Z])")
 HEADING = re.compile(r"^[^:]{0,80}:\s+")  # "Luminous intensity and standard light distribution: ..."

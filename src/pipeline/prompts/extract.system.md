@@ -5,7 +5,7 @@ The regulation is given one paragraph per line: `[p<page>] <paragraph> | <text>`
 ### Scope Guidelines:
 Include:
 - Obligations (shall, shall not, must, may ... only if) that the product's design, construction, materials, mechanical, electrical, physical, optical, or chemical performance, markings (including trade name, approval mark, Unique Identifier UI, and module markings) or durability must meet, and, when the regulation governs installation on the vehicle, the installation requirements for this product.
-- Only obligations that bind this product's own functions and parts. Skip requirements for devices, functions or vehicle categories the product does not have.
+- Only obligations that bind this product's own functions, categories/classes, and parts (as defined by `<specification>` and the callouts on the attached drawing(s)). Skip requirements for devices, categories, classes, functions or vehicle categories the product does not have.
 - Test-procedure and annex paragraphs where they set a condition, test level, test signal/pulse parameter (e.g. frequency bands, modulation, transient pulses), exposure parameters, or pass/fail tolerance criterion the product must satisfy.
 - Conditional design allowances, integration rules, and exemptions (e.g. shared boundary/interface rules between components, tell-tale provisions, and deemed-to-comply exemptions).
 

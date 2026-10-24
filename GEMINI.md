@@ -16,9 +16,7 @@ more than precision). Held-out case: released Sunday morning; only the **last** 
 - Shared repo: ask before committing or pushing. Keep PDFs, `.env` and `work/index/` out of git.
 - `.env` holds `ANTHROPIC_API_KEY` (hackathon credits) and `TEAM_ID=team-16`.
 
-## Best method so far (dev: platform F2 72.5)
-Vote ≥ 2 of 3 voters: review agent (`retrieve.py`), lenient review (`retrieve.py --reviewer lenient`), full read
-without review (`run.py --no-review`, as paragraph voter); then `vote.py --facts` (facts filter, table step,
-citation check). The whole chain for the dev case: `work/make_clean_submission.sh` (`submissions/dev-rear-lamp.vote-clean.json`).
+## Best method so far (dev: platform F2 72.2, F1 63.1, Page F1 87.2)
+4-voter probability score (`threshold=0.60`): review agent (`retrieve.py`), lenient review (`retrieve.py --reviewer lenient`), full read without review (`run.py --no-review`), and paragraph judge (`paragraph_judge.py`); then `vote.py --facts --threshold 0.60` (facts filter, table step, citation check). The whole chain for any case: `work/make_clean_submission.sh` (`submissions/<case>.vote.json`).
 For a new case: build missing obligations with `retrieve.py --build-missing`.
 Sub-challenge (`subgoal.py`): `.venv/bin/python -m src.pipeline.subgoal data/subgoal/<case> --team-id team-16` (dev: flag recall 83.3 / precision 90.9 / accuracy 89.5 in `submissions/subgoal-dev.json`).

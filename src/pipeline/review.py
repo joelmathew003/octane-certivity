@@ -14,10 +14,10 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 try:
-    from src.pipeline import llm, prompts, regs
+    from src.pipeline import llm, prompts, regs, run
 except ModuleNotFoundError as e:
     if e.name in ("src", "src.pipeline"):
-        from pipeline import llm, prompts, regs
+        from pipeline import llm, prompts, regs, run
     else:
         raise
 
@@ -56,8 +56,11 @@ def review_batch(spec: str, batch: list[dict], offset: int, images: list[dict] |
         items_text.append(f"[{idx}] {reg} §{para}: {text}")
 
     candidates_block = "\n".join(items_text)
+    cached_images = [dict(img) for img in (images or [])]
+    if cached_images:
+        cached_images[-1] = {**cached_images[-1], "cache_control": {"type": "ephemeral"}}
     content = [
-        *(images or []),
+        *cached_images,
         {"type": "text", "text": prompts.render("review.task", spec=spec, candidates=candidates_block)},
     ]
 
@@ -78,14 +81,19 @@ def review_requirements(
     ]
 
     all_reviews: dict[int, dict] = {}
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = [
-            pool.submit(review_batch, spec, batch, offset, images)
-            for batch, offset in batches
-        ]
-        for f in futures:
-            for rev in f.result():
-                all_reviews[rev["index"]] = rev
+    if batches:
+        # Warm the prompt cache with the first batch before firing parallel workers
+        for rev in review_batch(spec, batches[0][0], batches[0][1], images):
+            all_reviews[rev["index"]] = rev
+    if len(batches) > 1:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [
+                pool.submit(review_batch, spec, batch, offset, images)
+                for batch, offset in batches[1:]
+            ]
+            for f in futures:
+                for rev in f.result():
+                    all_reviews[rev["index"]] = rev
 
     kept = []
     discarded = []
@@ -119,11 +127,10 @@ def main() -> None:
     orig_reqs = sub_data.get("requirements", [])
     print(f"Loaded {len(orig_reqs)} requirements from {args.submission}")
 
-    spec_files = [p.read_text(encoding="utf-8") for p in sorted(args.case_dir.glob("*.md"))]
-    spec = "\n\n".join(spec_files) if spec_files else "Automotive component specification"
+    spec, images = run.case_inputs(args.case_dir)
 
     print("Running Review Agent ...")
-    kept, discarded = review_requirements(spec, orig_reqs, workers=args.workers)
+    kept, discarded = review_requirements(spec, orig_reqs, workers=args.workers, images=images)
 
     print(f"\n[Review Agent Summary]")
     print(f"Total candidates: {len(orig_reqs)}")
