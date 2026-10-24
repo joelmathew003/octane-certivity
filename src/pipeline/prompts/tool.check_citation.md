@@ -1,0 +1,1 @@
+Check one candidate's citation: whether the paragraph it cites exists in the regulation, on which page, and whether every number in the candidate's text also appears in that paragraph or its sub-paragraphs. Pass the candidate's number from the list.

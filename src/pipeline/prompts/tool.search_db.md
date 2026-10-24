@@ -1,0 +1,1 @@
+Search the regulation under review by keywords. Any of the words may match, and paragraphs that match more of them come first. Returns up to 8 paragraphs, each with its page, label and the start of its text.

@@ -7,11 +7,13 @@
    whose requirements bind the product, and the product's vehicle categories (prompts/profile.*.md).
 2. SQL takes every obligation of the regulation that carries one of those names or "all" and fits those vehicle
    categories, except transitional and administrative ones; administrative ones that require type approval stay.
-3. The review agent (pipeline.review) keeps what binds the product.
+3. The review agent (pipeline.review_agent) keeps, per regulation, what binds the product; it sees the drawings too
+   and can look paragraphs up in the database.
 
-The submission goes to submissions/<case>.obligations.json, next to run.py's, and is validated and scored the same
-way. Each step's output is saved under work/runs/<case>/obligations/. The selected regulations need obligations
-first: `.venv/bin/python -m src.pipeline.obligations "UN R48"`.
+The submission goes to submissions/<case>.obligations.json (with --no-review: <case>.obligations-no-review.json),
+next to run.py's, and is validated and scored the same way. Each step's output is saved under
+work/runs/<case>/obligations/ (or obligations-no-review/). The selected regulations need obligations first:
+`.venv/bin/python -m src.pipeline.obligations "UN R48"`.
 """
 
 from __future__ import annotations
@@ -25,10 +27,10 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 try:
-    from src.pipeline import db, llm, obligations, prompts, regs, review, run
+    from src.pipeline import db, llm, obligations, prompts, regs, review_agent, run
 except ModuleNotFoundError as e:
     if e.name in ("src", "src.pipeline"):
-        from pipeline import db, llm, obligations, prompts, regs, review, run
+        from pipeline import db, llm, obligations, prompts, regs, review_agent, run
     else:
         raise
 
@@ -114,7 +116,8 @@ def main() -> None:
     case_dir = next((base / args.case_dir for base in (run.DATA_DIR, run.REPO_ROOT) if (base / args.case_dir).exists()),
                     args.case_dir).resolve()
     case_id = case_dir.name
-    out_dir = run.RUNS_DIR / case_id / "obligations"
+    variant = "obligations-no-review" if args.no_review else "obligations"
+    out_dir = run.RUNS_DIR / case_id / variant
     out_dir.mkdir(parents=True, exist_ok=True)
     save = lambda name, data: (out_dir / name).write_text(json.dumps(data, indent=2, ensure_ascii=False),  # noqa: E731
                                                           encoding="utf-8")
@@ -134,28 +137,36 @@ def main() -> None:
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         profiles = dict(zip(selected, pool.map(lambda regulation: profile(regulation, spec, images), selected)))
     save("profile.json", profiles)
-    requirements = []
+    pools = {}
     for regulation in selected:
         chosen = profiles[regulation]
-        rows = candidates(regulation, chosen)
-        requirements += [requirement(regulation, row) for row in rows]
-        print(f"[profile] {regulation:9s} {len(rows):4d} candidates  categories {','.join(chosen['vehicle_categories'])}"
-              f"  names: {', '.join(chosen['applies_to'])}", flush=True)
-    save("candidates.json", requirements)
+        pools[regulation] = candidates(regulation, chosen)
+        print(f"[profile] {regulation:9s} {len(pools[regulation]):4d} candidates  categories "
+              f"{','.join(chosen['vehicle_categories'])}  names: {', '.join(chosen['applies_to'])}", flush=True)
+    save("candidates.json", pools)
 
     if args.no_review:
-        kept = [dict(item, id=f"R-{number:04d}") for number, item in enumerate(requirements, 1)]
+        kept = pools
     else:
-        print(f"[review] {len(requirements)} candidates ...", flush=True)
-        kept, discarded = review.review_requirements(spec, requirements, workers=args.workers)
-        save("discarded.json", discarded)
-        print(f"[review] kept {len(kept)}, discarded {len(discarded)}")
+        print(f"[review] one review agent per regulation, {sum(map(len, pools.values()))} candidates ...", flush=True)
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            reviews = dict(zip(selected, pool.map(
+                lambda regulation: review_agent.select(regulation, pools[regulation], spec, images), selected)))
+        kept = {regulation: rows for regulation, (rows, _) in reviews.items()}
+        save("review.json", {regulation: {"kept": rows, "tool_calls": calls}
+                             for regulation, (rows, calls) in reviews.items()})
+        for regulation, (rows, calls) in reviews.items():
+            print(f"[review] {regulation:9s} kept {len(rows):4d} of {len(pools[regulation]):4d}"
+                  f"  ({len(calls)} tool calls)")
 
-    submission = {"team_id": team_id, "case_id": case_id, "requirements": kept}
+    rows = [(regulation, row) for regulation in selected for row in kept[regulation]]
+    requirements = [dict(requirement(regulation, row), id=f"R-{number:04d}")
+                    for number, (regulation, row) in enumerate(rows, 1)]
+    submission = {"team_id": team_id, "case_id": case_id, "requirements": requirements}
     run.SUBMISSIONS_DIR.mkdir(exist_ok=True)
-    path = run.SUBMISSIONS_DIR / f"{case_id}.obligations.json"
+    path = run.SUBMISSIONS_DIR / f"{case_id}.{variant}.json"
     path.write_text(json.dumps(submission, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"\n{len(kept)} requirements -> {path.relative_to(run.REPO_ROOT)}")
+    print(f"\n{len(requirements)} requirements -> {path.relative_to(run.REPO_ROOT)}")
     print(f"tokens: {dict(llm.usage)}  cost: ${llm.cost_dollars():.2f}\n")
 
     subprocess.run([sys.executable, str(run.TOOLS_DIR / "validate.py"), str(path)], check=False)

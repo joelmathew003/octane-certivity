@@ -1,4 +1,4 @@
-"""One structured-output call to Claude, with usage and cost bookkeeping."""
+"""Structured-output calls to Claude (one turn, or a tool loop), with usage and cost bookkeeping."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import json
 import os
 import threading
 from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
 
 import anthropic
@@ -44,16 +45,17 @@ def client() -> anthropic.Anthropic:
     return _client
 
 
-def ask_json(system: str, content: list[dict], schema: dict, *, effort: str = "high") -> dict:
-    """Send one user turn and return the JSON object the model writes, validated by the API against `schema`."""
+def _send(system: str, messages: list[dict], schema: dict, effort: str, tools: list[dict] | None = None):
+    """One streamed request whose final answer must match `schema`; its usage is added to the totals."""
     with client().beta.messages.stream(
         model=MODEL,
         max_tokens=MAX_TOKENS,
         system=system,
-        messages=[{"role": "user", "content": content}],
+        messages=messages,
         output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
         betas=["server-side-fallback-2026-07-01"],
         fallbacks="default",
+        **({"tools": tools} if tools else {}),
     ) as stream:
         response = stream.get_final_message()
     with _usage_lock:
@@ -63,8 +65,44 @@ def ask_json(system: str, content: list[dict], schema: dict, *, effort: str = "h
         raise RuntimeError(f"request declined: {response.stop_details}")
     if response.stop_reason == "max_tokens":
         raise RuntimeError(f"output hit max_tokens={MAX_TOKENS}; the JSON is incomplete")
-    text = next(block.text for block in response.content if block.type == "text")
-    return json.loads(text)
+    return response
+
+
+def _answer(response) -> dict:
+    return json.loads(next(block.text for block in response.content if block.type == "text"))
+
+
+def ask_json(system: str, content: list[dict], schema: dict, *, effort: str = "high") -> dict:
+    """Send one user turn and return the JSON object the model writes, validated by the API against `schema`."""
+    return _answer(_send(system, [{"role": "user", "content": content}], schema, effort))
+
+
+def ask_json_with_tools(system: str, content: list[dict], schema: dict, tools: list[dict],
+                        call_tool: Callable[[str, dict], str], *, effort: str = "high", max_turns: int = 8,
+                        last_turn_note: str | None = None) -> dict:
+    """ask_json, but the model may first call client tools: call_tool(name, input) runs one and returns its text.
+
+    The results go back in the next turn until the model answers. With last_turn_note, that text joins the tool
+    results before the last allowed turn, so the model answers instead of running out of turns.
+    """
+    messages = [{"role": "user", "content": content}]
+    for turn in range(1, max_turns + 1):
+        response = _send(system, messages, schema, effort, tools)
+        if response.stop_reason != "tool_use":
+            return _answer(response)
+        results = []
+        for block in response.content:
+            if block.type != "tool_use":
+                continue
+            try:
+                output, failed = call_tool(block.name, block.input), False
+            except Exception as error:  # reported to the model, which can recover
+                output, failed = f"Error: {error}", True
+            results.append({"type": "tool_result", "tool_use_id": block.id, "content": output, "is_error": failed})
+        if last_turn_note and turn == max_turns - 1:
+            results.append({"type": "text", "text": last_turn_note})
+        messages += [{"role": "assistant", "content": response.content}, {"role": "user", "content": results}]
+    raise RuntimeError(f"no answer after {max_turns} turns")
 
 
 def cost_dollars() -> float:
