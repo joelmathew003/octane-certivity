@@ -13,4 +13,9 @@ work/obligations/*
 !work/obligations/*.jsonl
 data/work/
 submissions/
-
+frontend/node_modules/
+frontend/.output/
+frontend/.vinxi/
+frontend/.tanstack/
+frontend/.nitro/
+frontend/dist/
