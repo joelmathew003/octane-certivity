@@ -8,6 +8,9 @@ data/subgoal/*/*.pdf
 # output / cache directories
 work/*
 !work/regulations.db
+!work/obligations/
+work/obligations/*
+!work/obligations/*.jsonl
 data/work/
 submissions/
 
