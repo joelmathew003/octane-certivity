@@ -3,7 +3,8 @@
     .venv/bin/python -m src.pipeline.index_pdfs                # base versions -> work/index/
     .venv/bin/python -m src.pipeline.index_pdfs --role latest
 
-Paragraph labels follow the expected files: "5.1.4.3" in the main body, "Annex 6 Part 4 1" in annexes.
+Paragraph labels follow the expected files: "5.1.4.3" in the main body; annex paragraphs keep their own
+numbering behind the annex (and part) prefix: "Annex 5 1.1", "Annex 6 Part 4 4.1".
 Each record keeps the page where the paragraph starts and the page where it ends.
 """
 
