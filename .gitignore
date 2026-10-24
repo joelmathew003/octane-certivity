@@ -6,7 +6,8 @@ data/regulations/pdf/
 *.part
 data/subgoal/*/*.pdf
 # output / cache directories
-work/
+work/*
+!work/regulations.db
 data/work/
 submissions/
 
