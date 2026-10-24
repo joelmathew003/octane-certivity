@@ -45,8 +45,8 @@ REVIEW_SCHEMA = {
 BATCH_SIZE = 25
 
 
-def review_batch(spec: str, batch: list[dict], offset: int) -> list[dict]:
-    """Review a batch of candidate requirements against the product specification."""
+def review_batch(spec: str, batch: list[dict], offset: int, images: list[dict] | None = None) -> list[dict]:
+    """Review a batch of candidate requirements against the product specification and drawings."""
     items_text = []
     for i, req in enumerate(batch):
         idx = offset + i
@@ -57,6 +57,7 @@ def review_batch(spec: str, batch: list[dict], offset: int) -> list[dict]:
 
     candidates_block = "\n".join(items_text)
     content = [
+        *(images or []),
         {"type": "text", "text": prompts.render("review.task", spec=spec, candidates=candidates_block)},
     ]
 
@@ -64,7 +65,12 @@ def review_batch(spec: str, batch: list[dict], offset: int) -> list[dict]:
     return result.get("reviews", [])
 
 
-def review_requirements(spec: str, requirements: list[dict], workers: int = 4) -> tuple[list[dict], list[dict]]:
+def review_requirements(
+    spec: str,
+    requirements: list[dict],
+    workers: int = 4,
+    images: list[dict] | None = None,
+) -> tuple[list[dict], list[dict]]:
     """Review all requirements in parallel batches. Returns (kept_requirements, discarded_records)."""
     batches = [
         (requirements[i : i + BATCH_SIZE], i)
@@ -74,7 +80,7 @@ def review_requirements(spec: str, requirements: list[dict], workers: int = 4) -
     all_reviews: dict[int, dict] = {}
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = [
-            pool.submit(review_batch, spec, batch, offset)
+            pool.submit(review_batch, spec, batch, offset, images)
             for batch, offset in batches
         ]
         for f in futures:

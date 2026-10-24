@@ -108,10 +108,11 @@ def select_regulations(spec: str, images: list[dict]) -> list[dict]:
     return llm.ask_json(prompts.render("select.system"), content, select_schema())["regulations"]
 
 
-def extract(regulation: str, reason: str, spec: str) -> list[dict]:
+def extract(regulation: str, reason: str, spec: str, images: list[dict] | None = None) -> list[dict]:
     content = [
         {"type": "text", "text": prompts.render("regulation", regulation_text=regs.render(regulation)),
          "cache_control": {"type": "ephemeral"}},
+        *(images or []),
         {"type": "text", "text": prompts.render("extract.task", spec=spec, regulation=regulation, reason=reason)},
     ]
     return llm.ask_json(prompts.render("extract.system"), content, EXTRACT_SCHEMA)["requirements"]
@@ -186,7 +187,7 @@ def main() -> None:
         print(f"[select] {choice['regulation']:9s} {choice['role']:12s} {choice['reason'][:110]}")
 
     def work(choice: dict) -> tuple[str, list[dict]]:
-        items = extract(choice["regulation"], choice["reason"], spec)
+        items = extract(choice["regulation"], choice["reason"], spec, images)
         out = run_dir / f"extract_{regs.slug(choice['regulation'])}.json"
         out.write_text(json.dumps(items, indent=2, ensure_ascii=False), encoding="utf-8")
         print(f"[extract] {choice['regulation']:9s} {len(items):4d} requirements", flush=True)
@@ -198,7 +199,7 @@ def main() -> None:
     submission = assemble(team_id, case_id, extracted)
     if not args.no_review:
         print("[review] running review agent to prune non-binding clauses ...", flush=True)
-        reviewed_reqs, discarded = review.review_requirements(spec, submission["requirements"], workers=args.workers)
+        reviewed_reqs, discarded = review.review_requirements(spec, submission["requirements"], workers=args.workers, images=images)
         print(f"[review] kept {len(reviewed_reqs)} requirements, pruned {len(discarded)} non-binding clauses")
         submission["requirements"] = reviewed_reqs
 

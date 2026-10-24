@@ -110,6 +110,8 @@ CREATE TABLE expected (
 
 def section_of(label: str) -> str:
     """"5.1.4.3" -> "5", "Annex 6 Part 4 1" -> "Annex 6", "Preamble" -> "Preamble"."""
+    if label.startswith("Rationale"):
+        return "Preamble"
     match = re.match(r"Annex \S+|\d+", label)
     return match.group() if match else label
 
@@ -140,6 +142,12 @@ def build(path: Path = DB_PATH) -> Counter[str]:
                 stats["versions not indexed"] += 1
                 continue
             records = [json.loads(line) for line in index.read_text(encoding="utf-8").splitlines() if line.strip()]
+            for idx, rec in enumerate(records):
+                if "II. Text of the Regulation" in rec["text"]:
+                    for prev in records[: idx + 1]:
+                        if prev["paragraph"] != "Preamble" and not prev["paragraph"].startswith("Rationale "):
+                            prev["paragraph"] = f"Rationale {prev['paragraph']}"
+                    break
             titles: dict[str, str] = {}
             for record in records:
                 if record["paragraph"] == section_of(record["paragraph"]):

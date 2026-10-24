@@ -84,6 +84,8 @@ def overview(regulation: str) -> str:
     text = []
     for record in paragraphs(regulation):
         label = record["paragraph"]
+        if label.startswith("Rationale"):
+            continue
         if label.startswith("Annex") or re.match(r"^[3-9]|^\d{2}", label):
             break
         text.append(f"{label} {record['text']}")

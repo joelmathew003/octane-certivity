@@ -27,8 +27,9 @@ OUT_DIR = REPO_ROOT / "work" / "index"
 PAGE_HEADER = re.compile(r"^.+, version .+ \| page \d+ of \d+$")
 # "3.3.2.5.1.1. The arrow" / "1. General" / "1 Scope": a number, then a capital, a quote or a bracket
 PARAGRAPH = re.compile(r"^((?:\d+\.)*\d+)\.?\s+(?=[A-Z(\"'“‘•])")
-ANNEX = re.compile(r"^Annex (\d+[A-Z]?)\s+[A-Z]")
+ANNEX = re.compile(r"^Annex (\d+[A-Z]?)(?:\s*$|\s+[A-Z(\-–:])")
 PART = re.compile(r"^Part ([A-Z0-9]+)\s*[:\-–]")
+REGULATION_TEXT = re.compile(r"^(?:II|B)\.\s+Text of the (?:global technical )?regulation$", re.IGNORECASE)
 
 
 @dataclass
@@ -60,6 +61,7 @@ def split_pdf(path: Path, regulation: str, version: str, role: str) -> list[dict
     annex: str | None = None
     part: str | None = None
     current: Paragraph | None = None
+    top_section: int = 0
 
     def start(label: str, page: int, first_line: str) -> None:
         nonlocal current
@@ -73,6 +75,13 @@ def split_pdf(path: Path, regulation: str, version: str, role: str) -> list[dict
             line = line.strip()
             if not line or PAGE_HEADER.match(line):
                 continue
+            if REGULATION_TEXT.match(line):
+                for p in paragraphs:
+                    if p.paragraph != "Preamble" and not p.paragraph.startswith("Rationale "):
+                        p.paragraph = f"Rationale {p.paragraph}"
+                annex, part, current, top_section = None, None, None, 0
+                start("Preamble", page_number, line)
+                continue
             if (match := ANNEX.match(line)) and (
                 annex is None or annex_number(match.group(1)) > annex_number(annex)
             ) and page_number > 2:
@@ -84,7 +93,20 @@ def split_pdf(path: Path, regulation: str, version: str, role: str) -> list[dict
                 start("", page_number, line)
                 continue
             if match := PARAGRAPH.match(line):
-                start(match.group(1), page_number, line[match.end():])
+                label = match.group(1)
+                has_dot = match.group(0).rstrip().endswith(".")
+                if annex is None and "." not in label:
+                    num = int(label)
+                    if not has_dot and not (num == top_section + 1 or (top_section == 0 and num in (0, 1))):
+                        if current is None:
+                            start("Preamble", page_number, line)
+                        else:
+                            current.lines.append(line)
+                            current.end_page = page_number
+                        continue
+                    if num == top_section + 1 or (top_section == 0 and num in (0, 1)):
+                        top_section = num
+                start(label, page_number, line[match.end():])
                 continue
             if current is None:
                 start("Preamble", page_number, line)

@@ -15,8 +15,11 @@ Writes submissions/<case>.vote.json, then validates and scores it like run.py.
 from __future__ import annotations
 
 import argparse
+from collections import defaultdict
+from difflib import SequenceMatcher
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -28,6 +31,8 @@ except ModuleNotFoundError as e:
         from pipeline import citations, db, facts, llm, run, tables
     else:
         raise
+
+WORD = re.compile(r"[a-z0-9]+")
 
 
 def requirement_key(item: dict) -> tuple[str, str, str]:
@@ -42,7 +47,73 @@ def load(path: Path) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))["requirements"]
 
 
-def vote(pool: list[dict], voters: list[list[dict]], paragraph_voters: list[list[dict]], min_votes: int) -> list[dict]:
+def text_similarity(a: str, b: str) -> float:
+    wa, wb = set(WORD.findall(a.lower())), set(WORD.findall(b.lower()))
+    jaccard = len(wa & wb) / len(wa | wb) if (wa and wb) else 0.0
+    seq = SequenceMatcher(None, a.lower(), b.lower()).ratio()
+    return max(jaccard, seq)
+
+
+def paragraph_voter_score(item: dict, by_para: dict[tuple[str, str], list[str]], is_fullread: bool) -> float:
+    """Continuous [0, 1] support from a paragraph/extraction voter for a specific candidate."""
+    texts = by_para.get(paragraph_key(item), [])
+    if not texts:
+        return 0.0
+    if not is_fullread:
+        return 1.0
+    best_sim = max(text_similarity(item["text"], t) for t in texts)
+    return 1.0 if best_sim >= 0.30 else 0.70
+
+
+def probability_scores(
+    pool: list[dict],
+    voters: list[list[dict]],
+    paragraph_voters: list[list[dict]],
+) -> list[tuple[dict, float]]:
+    """Compute calibrated probability score P(keep | candidate) in [0, 1] across all requirement and paragraph voters."""
+    requirement_sets = [{requirement_key(item) for item in voter} for voter in voters]
+    para_maps: list[tuple[dict[tuple[str, str], list[str]], bool]] = []
+    for pv in paragraph_voters:
+        by_para: dict[tuple[str, str], list[str]] = defaultdict(list)
+        for r in pv:
+            by_para[paragraph_key(r)].append(r["text"])
+        is_fullread = any(not str(r.get("id", "")).startswith("P-") for r in pv)
+        para_maps.append((by_para, is_fullread))
+
+    if len(requirement_sets) == 2 and len(para_maps) == 2:
+        req_weights = [0.20, 0.25]
+        para_weights = [0.35, 0.20]
+    elif len(requirement_sets) == 2 and len(para_maps) == 1:
+        req_weights = [0.28, 0.32]
+        para_weights = [0.40]
+    else:
+        n_total = max(1, len(requirement_sets) + len(para_maps))
+        req_weights = [1.0 / n_total] * len(requirement_sets)
+        para_weights = [1.0 / n_total] * len(para_maps)
+
+    scored = []
+    for item in pool:
+        rk = requirement_key(item)
+        prob = sum(w * (1.0 if rk in s else 0.0) for w, s in zip(req_weights, requirement_sets))
+        prob += sum(w * paragraph_voter_score(item, by_para, is_fl)
+                    for w, (by_para, is_fl) in zip(para_weights, para_maps))
+        scored.append((item, prob))
+    return scored
+
+
+def vote(
+    pool: list[dict],
+    voters: list[list[dict]],
+    paragraph_voters: list[list[dict]],
+    min_votes: int = 2,
+    threshold: float | None = 0.60,
+) -> list[dict]:
+    if threshold is not None:
+        scored = probability_scores(pool, voters, paragraph_voters)
+        kept = [dict(item, id=f"R-{i:04d}") for i, (item, prob) in enumerate(
+            ((it, p) for it, p in scored if p >= threshold - 1e-9), 1
+        )]
+        return kept
     requirement_sets = [{requirement_key(item) for item in voter} for voter in voters]
     paragraph_sets = [{paragraph_key(item) for item in voter} for voter in paragraph_voters]
     kept = []
@@ -59,7 +130,8 @@ def main() -> None:
     parser.add_argument("--pool", type=Path, required=True, help="submission with every candidate")
     parser.add_argument("--voters", type=Path, nargs="*", default=[], help="submissions that vote per requirement")
     parser.add_argument("--paragraph-voters", type=Path, nargs="*", default=[], help="submissions that vote per paragraph")
-    parser.add_argument("--min-votes", type=int, default=2)
+    parser.add_argument("--min-votes", type=int, default=None, help="use hard integer vote threshold instead of probability")
+    parser.add_argument("--threshold", type=float, default=0.60, help="probability threshold in [0, 1] (default: 0.60)")
     parser.add_argument("--no-tables", action="store_true", help="skip restating table paragraphs (tables.py)")
     parser.add_argument("--facts", type=Path, default=None, help="facts.json from pipeline.facts: drop requirements "
                                                                  "for categories the product does not have")
@@ -69,7 +141,14 @@ def main() -> None:
     llm.load_env()
     case_dir = next((base / args.case_dir for base in (run.DATA_DIR, run.REPO_ROOT) if (base / args.case_dir).exists()),
                     args.case_dir).resolve()
-    kept = vote(load(args.pool), [load(p) for p in args.voters], [load(p) for p in args.paragraph_voters], args.min_votes)
+    use_threshold = None if args.min_votes is not None else args.threshold
+    kept = vote(
+        load(args.pool),
+        [load(p) for p in args.voters],
+        [load(p) for p in args.paragraph_voters],
+        min_votes=args.min_votes or 2,
+        threshold=use_threshold,
+    )
     if args.facts:
         kept, dropped = facts.filter(kept, json.loads(args.facts.read_text(encoding="utf-8")))
         print(f"[facts] dropped {dropped} requirements for categories the product does not have")
@@ -83,7 +162,8 @@ def main() -> None:
                   "requirements": kept}
     path = run.SUBMISSIONS_DIR / f"{case_dir.name}.vote.json"
     path.write_text(json.dumps(submission, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"{len(kept)} of {len(load(args.pool))} candidates have >= {args.min_votes} votes -> "
+    mode_desc = f"prob >= {use_threshold:.2f}" if use_threshold is not None else f">= {args.min_votes} votes"
+    print(f"{len(kept)} of {len(load(args.pool))} candidates have {mode_desc} -> "
           f"{path.relative_to(run.REPO_ROOT)}\n")
     subprocess.run([sys.executable, str(run.TOOLS_DIR / "validate.py"), str(path)], check=False)
     expected = case_dir / "expected.json"

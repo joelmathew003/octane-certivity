@@ -115,6 +115,8 @@ def main() -> None:
     parser.add_argument("--no-review", action="store_true", help="same as --reviewer none")
     parser.add_argument("--build-missing", action="store_true",
                         help="build the obligations of selected regulations that have none (paid, ~$2-4 each)")
+    parser.add_argument("--reuse-candidates", action="store_true",
+                        help="reuse work/runs/<case>/obligations/candidates.json so all voters share one pool")
     args = parser.parse_args()
     reviewer = "none" if args.no_review else args.reviewer
 
@@ -146,15 +148,21 @@ def main() -> None:
                          f"`.venv/bin/python -m src.pipeline.obligations {quoted}` first")
     save("selected.json", selected)
 
-    with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        profiles = dict(zip(selected, pool.map(lambda regulation: profile(regulation, spec, images), selected)))
-    save("profile.json", profiles)
-    pools = {}
-    for regulation in selected:
-        chosen = profiles[regulation]
-        pools[regulation] = candidates(regulation, chosen)
-        print(f"[profile] {regulation:9s} {len(pools[regulation]):4d} candidates  categories "
-              f"{','.join(chosen['vehicle_categories'])}  names: {', '.join(chosen['applies_to'])}", flush=True)
+    shared_candidates = run.RUNS_DIR / case_id / "obligations" / "candidates.json"
+    if args.reuse_candidates and shared_candidates.exists():
+        pools = json.loads(shared_candidates.read_text(encoding="utf-8"))
+        for regulation in selected:
+            print(f"[profile] {regulation:9s} {len(pools.get(regulation, [])):4d} candidates (reused shared pool)", flush=True)
+    else:
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            profiles = dict(zip(selected, pool.map(lambda regulation: profile(regulation, spec, images), selected)))
+        save("profile.json", profiles)
+        pools = {}
+        for regulation in selected:
+            chosen = profiles[regulation]
+            pools[regulation] = candidates(regulation, chosen)
+            print(f"[profile] {regulation:9s} {len(pools[regulation]):4d} candidates  categories "
+                  f"{','.join(chosen['vehicle_categories'])}  names: {', '.join(chosen['applies_to'])}", flush=True)
     save("candidates.json", pools)
 
     everything = [requirement(regulation, row) for regulation in selected for row in pools[regulation]]
@@ -162,7 +170,7 @@ def main() -> None:
         requirements = everything
     elif reviewer == "lenient":
         print(f"[review] review.py on {len(everything)} candidates ...", flush=True)
-        requirements, discarded = review.review_requirements(spec, everything, workers=args.workers)
+        requirements, discarded = review.review_requirements(spec, everything, workers=args.workers, images=images)
         save("discarded.json", discarded)
         print(f"[review] kept {len(requirements)}, discarded {len(discarded)}")
     else:
