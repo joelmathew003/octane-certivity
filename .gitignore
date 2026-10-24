@@ -2,3 +2,8 @@ industrial-ai-hackathon/regulations/pdf/
 **/__pycache__/
 .venv/
 *.pyc
+.env
+*.part
+industrial-ai-hackathon/subgoal/*/*.pdf
+# paragraph index derived from the PDFs: rebuild with `python -m pipeline.index_pdfs`
+industrial-ai-hackathon/work/
