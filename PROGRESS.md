@@ -2,7 +2,7 @@
 
 Updated: 2026-10-24, 19:30 (Saturday)
 
-Status: The vote of three methods is the best result. Its requirement F1 on the platform is 59.1. The best result before the vote was 52.8.
+Status: The vote of three methods with the table step is the best result: requirement F2 67.8 and F1 62.3 on the platform (number 3 on the leaderboard). The best result before the vote was F1 52.8.
 
 ## 1. Scores
 
@@ -10,16 +10,22 @@ Status: The vote of three methods is the best result. Its requirement F1 on the 
 
 Only the platform measures the requirement level. The platform accepts 5 uploads in each hour.
 
+IMPORTANT: The leaderboard ranks the teams by requirement F2. F2 counts recall more than precision. At 19:30 we were number 5 of 9 (F2 64.9). Number 1 had F2 76.2 at recall 89.5.
+
 | Upload | Method | Reqs | Req P | Req R | Req F1 | Req F2 | Page F1 | Regulation F1 |
 |---|---|---|---|---|---|---|---|---|
 | 17:49 | Full read + lenient review (`run.py`, from Joel's computer) | 185 | 53.5 | 52.1 | 52.8 | 52.4 | **92.6** | 100 |
 | 18:10 | Full read, other run (from Joel's computer) | 208 | 50.0 | 54.7 | 52.3 | 53.7 | 89.1 | 100 |
 | 18:23 | Obligation path + lenient review (`review.py`) | 399 | 37.6 | **78.9** | 50.9 | 64.7 | 77.9 | 100 |
-| 18:49 | Obligation path + review agent v1 | 172 | **54.7** | 49.5 | 51.9 | 50.4 | 84.6 | 100 |
-| 19:21 | Vote: 2 of 3 (agent v1, lenient review, full read) | 250 | 52.0 | 68.4 | **59.1** | 64.4 | 90.9 | 100 |
-| 19:21 | Vote: 2 of 3 (agent v2, lenient review, full read) | 280 | 48.2 | 71.1 | 57.4 | **64.9** | 87.0 | 100 |
+| 18:49 | Obligation path + review agent v1 | 172 | 54.7 | 49.5 | 51.9 | 50.4 | 84.6 | 100 |
+| 19:21 | Vote: 2 of 3 (agent v1, lenient review, full read) | 250 | 52.0 | 68.4 | 59.1 | 64.4 | 90.9 | 100 |
+| 19:21 | Vote: 2 of 3 (agent v2, lenient review, full read) | 280 | 48.2 | 71.1 | 57.4 | 64.9 | 87.0 | 100 |
+| 19:47 | Vote (agent v1) + table paragraphs restated (`vote-agent1-tables`) | 250 | **54.8** | 72.1 | **62.3** | **67.8** | 90.9 | 100 |
+| 19:54 | Vote (agent v2) + table paragraphs restated (`vote-agent2-tables`) | 280 | 50.0 | 73.7 | 59.6 | 67.3 | 87.0 | 100 |
 
-- For F1, the vote with the strict agent v1 is the best. For F2, the vote with agent v2 is the best.
+- The table step (`tables.py`) adds 3.4 points of F2 and 3.2 points of F1 on the platform.
+- The strict agent v1 is the better voter, also for F2 (67.8 against 67.3). The proxy ranked these two files the wrong way: do not use it for differences of approximately 1 point.
+- With F2 67.8 we are number 3 on the leaderboard.
 - A stricter agent makes a better vote: the lenient review gives the recall, so the agent must give the precision.
 
 ### 1.2 Offline scores (every file in `submissions/`)
@@ -33,6 +39,10 @@ Only the platform measures the requirement level. The platform accepts 5 uploads
 | `obligations-agent-v2` | Obligation path + review agent v2 | 242 | 49.2 | 62.6 | 55.1 | 0.814 | $1.26 |
 | `vote-agent1-lenient-fullread` | Vote: 2 of 3 (agent v1, lenient review, full read) | 250 | 54.8 | 72.1 | **62.3** | 0.909 | $0 |
 | `vote-agent2-lenient-fullread` | Vote: 2 of 3 (agent v2, lenient review, full read) | 280 | 51.4 | 75.8 | 61.3 | 0.870 | $0 |
+| `vote-agent1-tables` | Vote (agent v1) + table paragraphs restated (`tables.py`) | 250 | 56.0 | 73.7 | 63.6 | 0.909 | $0 |
+| `vote-agent2-tables` | Vote (agent v2) + table paragraphs restated (`tables.py`) | 280 | 52.5 | 77.4 | 62.6 | 0.870 | $0 |
+
+- Proxy F2: `vote-agent2-tables` 70.7 against 69.2 for `vote-agent2-lenient-fullread` (platform 64.9). Upload `vote-agent2-tables` next.
 
 - Proxy: our requirements and the expected ones are paired one to one in each cited paragraph. A pair counts when the text similarity is 0.65 or more. On the three uploads of files that we have (399, 172 and 250 requirements), the proxy is from 2 points below to 4 points above the platform. Use it to compare files, not as a score.
 - Page F1: `data/tools/score_local.py`.
@@ -53,7 +63,7 @@ The diagram `architecture.excalidraw` shows it. Section 4 is a table of the inpu
 2. Obligation builder (one time for each regulation, Claude): `obligations.py` writes each obligation of a regulation as one requirement, with tags.
 3. Path A, full read (`run.py`): Claude selects the regulations, reads each one in full and writes the requirements. The lenient review (`review.py`) prunes them.
 4. Path B, obligations (`retrieve.py`): Claude picks the product's tags (step 1). SQL takes the candidates (step 2). The review agent (`review_agent.py`) or the lenient review keeps what binds the product (step 3).
-5. Vote (`vote.py`, no LLM): keep a candidate when 2 of 3 voters agree.
+5. Vote (`vote.py`, no LLM): keep a candidate when 2 of 3 voters agree. Then `tables.py` restates table paragraphs: when several requirements cite a paragraph with a table, it adds the paragraph's own sentences, because the experts write one requirement for "shall meet the requirements in Table 4".
 6. Citation check (`citations.py`, no LLM): it fixes version and page, and it reports numbers that are not in the cited paragraph. `run.py`, `retrieve.py` and `vote.py` run it before they write a file.
 
 ## 3. Review of the architecture
@@ -104,6 +114,7 @@ Section 5 of the diagram (gray box) shows it.
 | `acb9b6f` | ishwargov | Diagram section 4 |
 | not committed | — | Review agent prompt v2 (keeps markings and test parameters) |
 | not committed | — | `vote.py`, `citations.py`; `retrieve.py --reviewer` and `--build-missing` |
+| not committed | — | `tables.py`: restate table paragraphs after the vote (proxy F2 +1.5) |
 | not committed | — | Diagram: sections 4 to 6 rebuilt; steps 3 and 4 marked built |
 | not committed | — | This file |
 
@@ -111,7 +122,8 @@ Section 5 of the diagram (gray box) shows it.
 
 | Item | Description |
 |---|---|
-| Strict agent in the vote | Keep the review agent strict (v1 prompt) when it is a voter: the vote with v1 has the best F1 |
+| Upload `vote-agent2-tables` | Proxy F2 70.7; expected platform F2 approximately 66 |
+| Better selection | 82 of the 136 wrong requirements in the vote cite paragraphs that the experts do not cite. A better selector is the next large gain for F2 |
 | Step 1 one time | Keep the profile of the case and give it to all voters |
 | One command for Sunday | Run select, full read, obligation path, both reviews, vote and citation check |
 | Drawing for all steps | Give the drawing to the full read and the lenient review |

@@ -8,7 +8,8 @@
 Every file is a submission. A requirement voter votes for each requirement it contains (same regulation, paragraph
 and text as in the pool); a paragraph voter votes for every pool requirement on a paragraph it cites (e.g. the
 full-read run, whose texts differ from the obligations'). A pool requirement with at least --min-votes votes is
-kept. Writes submissions/<case>.vote.json, then validates and scores it like run.py.
+kept. Then table paragraphs are restated (tables.py, --no-tables skips it) and the citations checked.
+Writes submissions/<case>.vote.json, then validates and scores it like run.py.
 """
 
 from __future__ import annotations
@@ -21,10 +22,10 @@ import sys
 from pathlib import Path
 
 try:
-    from src.pipeline import citations, db, llm, run
+    from src.pipeline import citations, db, llm, run, tables
 except ModuleNotFoundError as e:
     if e.name in ("src", "src.pipeline"):
-        from pipeline import citations, db, llm, run
+        from pipeline import citations, db, llm, run, tables
     else:
         raise
 
@@ -59,6 +60,7 @@ def main() -> None:
     parser.add_argument("--voters", type=Path, nargs="*", default=[], help="submissions that vote per requirement")
     parser.add_argument("--paragraph-voters", type=Path, nargs="*", default=[], help="submissions that vote per paragraph")
     parser.add_argument("--min-votes", type=int, default=2)
+    parser.add_argument("--no-tables", action="store_true", help="skip restating table paragraphs (tables.py)")
     parser.add_argument("--team-id", default=None, help="default: TEAM_ID from .env")
     args = parser.parse_args()
 
@@ -66,6 +68,10 @@ def main() -> None:
     case_dir = next((base / args.case_dir for base in (run.DATA_DIR, run.REPO_ROOT) if (base / args.case_dir).exists()),
                     args.case_dir).resolve()
     kept = vote(load(args.pool), [load(p) for p in args.voters], [load(p) for p in args.paragraph_voters], args.min_votes)
+    if not args.no_tables:
+        kept, change = tables.restate(kept)
+        print(f"[tables] restated table paragraphs: {change:+d} requirements")
+    kept = [dict(item, id=f"R-{number:04d}") for number, item in enumerate(kept, 1)]
     kept, findings, examples = citations.check_all(kept)
     print(citations.report(kept, findings, examples))
     submission = {"team_id": args.team_id or os.environ.get("TEAM_ID") or "team-00", "case_id": case_dir.name,
