@@ -10,7 +10,7 @@ from pathlib import Path
 
 import anthropic
 
-ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 MODEL = "claude-opus-5-5"
 MAX_TOKENS = 64000
 # claude-opus-5-5, dollars per million tokens; 5-minute cache writes are 1.25x input
@@ -26,7 +26,7 @@ _usage_lock = threading.Lock()
 _client: anthropic.Anthropic | None = None
 
 
-def load_env(path: Path = ROOT / ".env") -> None:
+def load_env(path: Path = REPO_ROOT / ".env") -> None:
     """KEY=VALUE lines from .env, without overriding variables that are already set."""
     if not path.exists():
         return

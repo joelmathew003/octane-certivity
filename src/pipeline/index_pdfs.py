@@ -1,7 +1,7 @@
 """Split every regulation PDF into paragraphs: (regulation, version, page, paragraph, text).
 
-    .venv/bin/python -m pipeline.index_pdfs                # base versions -> work/index/
-    .venv/bin/python -m pipeline.index_pdfs --role latest
+    .venv/bin/python -m src.pipeline.index_pdfs                # base versions -> work/index/
+    .venv/bin/python -m src.pipeline.index_pdfs --role latest
 
 Paragraph labels follow the expected files: "5.1.4.3" in the main body, "Annex 6 Part 4 1" in annexes.
 Each record keeps the page where the paragraph starts and the page where it ends.
@@ -17,10 +17,11 @@ from pathlib import Path
 
 import pymupdf
 
-ROOT = Path(__file__).resolve().parent.parent
-INDEX_JSON = ROOT / "regulations" / "index.json"
-PDF_DIR = ROOT / "regulations" / "pdf"
-OUT_DIR = ROOT / "work" / "index"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = REPO_ROOT / "data" if (REPO_ROOT / "data").exists() else REPO_ROOT / "industrial-ai-hackathon"
+INDEX_JSON = DATA_DIR / "regulations" / "index.json"
+PDF_DIR = DATA_DIR / "regulations" / "pdf"
+OUT_DIR = REPO_ROOT / "work" / "index"
 
 PAGE_HEADER = re.compile(r"^.+, version .+ \| page \d+ of \d+$")
 # "3.3.2.5.1.1. The arrow" / "1. General" / "1 Scope": a number, then a capital, a quote or a bracket

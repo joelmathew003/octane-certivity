@@ -7,9 +7,10 @@ import re
 from functools import cache
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-INDEX_JSON = ROOT / "regulations" / "index.json"
-INDEX_DIR = ROOT / "work" / "index"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = REPO_ROOT / "data" if (REPO_ROOT / "data").exists() else REPO_ROOT / "industrial-ai-hackathon"
+INDEX_JSON = DATA_DIR / "regulations" / "index.json"
+INDEX_DIR = REPO_ROOT / "work" / "index"
 OVERVIEW_CHARS = 3000
 
 
@@ -30,7 +31,7 @@ def version_label(regulation: str, role: str = "base") -> str:
 def paragraphs(regulation: str, role: str = "base") -> tuple[dict, ...]:
     path = INDEX_DIR / f"{slug(regulation)}_{role}.jsonl"
     if not path.exists():
-        raise SystemExit(f"{path} is missing: run `.venv/bin/python -m pipeline.index_pdfs --role {role}` first")
+        raise SystemExit(f"{path} is missing: run `.venv/bin/python -m src.pipeline.index_pdfs --role {role}` first")
     return tuple(json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
 
 

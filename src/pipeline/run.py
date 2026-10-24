@@ -1,7 +1,7 @@
 """Product specification -> the UN Regulation requirements it must fulfil, as a submission file.
 
-    .venv/bin/python -m pipeline.run cases/dev-rear-lamp --team-id team-07
-    .venv/bin/python -m pipeline.run cases/dev-rear-lamp --regulations "UN R48" "UN R148"   # skip selection
+    .venv/bin/python -m src.pipeline.run cases/dev-rear-lamp --team-id team-07
+    .venv/bin/python -m src.pipeline.run cases/dev-rear-lamp --regulations "UN R48" "UN R148"   # skip selection
 
 Steps: pick the applicable regulations from the catalogue, then for each one read the whole base version and
 write one requirement per engineering obligation, citing paragraph and page. Every LLM answer is saved under
@@ -21,11 +21,19 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from pipeline import llm, regs
+try:
+    from src.pipeline import llm, regs
+except ModuleNotFoundError as e:
+    if e.name in ("src", "src.pipeline"):
+        from pipeline import llm, regs
+    else:
+        raise
 
-ROOT = regs.ROOT
-RUNS_DIR = ROOT / "work" / "runs"
-SUBMISSIONS_DIR = ROOT / "submissions"
+REPO_ROOT = regs.REPO_ROOT
+DATA_DIR = regs.DATA_DIR
+RUNS_DIR = REPO_ROOT / "work" / "runs"
+SUBMISSIONS_DIR = REPO_ROOT / "submissions"
+TOOLS_DIR = DATA_DIR / "tools"
 MAX_TEXT = 2000
 IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
 
@@ -209,7 +217,16 @@ def main() -> None:
 
     llm.load_env()
     team_id = args.team_id or os.environ.get("TEAM_ID") or "team-00"
-    case_dir = args.case_dir.resolve()
+    raw_case_dir = args.case_dir
+    if not raw_case_dir.is_absolute():
+        if (DATA_DIR / raw_case_dir).exists():
+            case_dir = (DATA_DIR / raw_case_dir).resolve()
+        elif (REPO_ROOT / raw_case_dir).exists():
+            case_dir = (REPO_ROOT / raw_case_dir).resolve()
+        else:
+            case_dir = raw_case_dir.resolve()
+    else:
+        case_dir = raw_case_dir.resolve()
     case_id = case_dir.name
     run_dir = RUNS_DIR / case_id
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -241,13 +258,13 @@ def main() -> None:
     SUBMISSIONS_DIR.mkdir(exist_ok=True)
     path = SUBMISSIONS_DIR / f"{case_id}.json"
     path.write_text(json.dumps(submission, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"\n{len(submission['requirements'])} requirements -> {path.relative_to(ROOT)}")
+    print(f"\n{len(submission['requirements'])} requirements -> {path.relative_to(REPO_ROOT)}")
     print(f"tokens: {dict(llm.usage)}  cost: ${llm.cost_dollars():.2f}\n")
 
-    subprocess.run([sys.executable, str(ROOT / "tools" / "validate.py"), str(path)], check=False)
+    subprocess.run([sys.executable, str(TOOLS_DIR / "validate.py"), str(path)], check=False)
     expected = case_dir / "expected.json"
     if expected.exists():
-        subprocess.run([sys.executable, str(ROOT / "tools" / "score_local.py"), str(path), "--expected", str(expected)],
+        subprocess.run([sys.executable, str(TOOLS_DIR / "score_local.py"), str(path), "--expected", str(expected)],
                        check=False)
 
 
