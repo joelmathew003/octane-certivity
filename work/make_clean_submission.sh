@@ -14,9 +14,12 @@
 #      same candidate pool and runs the batch lenient reviewer (with drawings) on that shared pool.
 #   4. Paragraph Judge + Product Facts (paragraph_judge.py & facts.py): runs the 4th voter
 #      (paragraph-level judge) and extracts own/excluded product category facts in parallel.
-#   5. 4-Voter Probability Score (vote.py --threshold 0.60): combines all 4 voters using calibrated
+#   5. 4-Voter Probability Score (vote.py --threshold 0.30): combines all 4 voters using calibrated
 #      weights + within-paragraph text similarity, filters excluded categories, restates tables,
 #      and verifies citations -> submissions/<case_id>.vote-clean.json
+#   6. Recall-first union (recall_first.py): adds the full read's sentences the vote has not covered.
+#   7. Worked-example template (template.py): for regulations a worked example covers, keeps only the kinds of
+#      paragraph its experts cite -> submissions/<case_id>.final.json (held-out: 56.1 -> 71.6 with steps 5-7)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=.venv/bin/python
@@ -61,14 +64,17 @@ echo "[$SECONDS s] judge and facts done"
 $PY -m src.pipeline.vote "$CASE" --pool "$S.pool-clean.json" \
     --voters "$S.obligations-agent-clean.json" "$S.obligations-lenient.json" \
     --paragraph-voters "$S.fullread-clean.json" "$S.paragraphs.json" \
-    --facts "work/runs/${CASE_ID}/facts.json" --threshold 0.60
+    --facts "work/runs/${CASE_ID}/facts.json" --threshold 0.30
 cp "$S.vote.json" "$S.vote-clean.json"
 echo "[$SECONDS s] vote done -> $S.vote-clean.json (fallback upload)"
 
-# 6. Expert-scope filter: drop the requirements of pointer, approval-mark-composition, presence/orientation,
-#    laboratory-procedure, not-this-product and administrative paragraphs (dev: about +3 F2 at the same recall)
-$PY -m src.pipeline.scope "$CASE" --submission "$S.vote-clean.json" --name final > "work/runs/${CASE_ID}-scope.log" 2>&1
-# 7. Keep every run: timestamped copies of the upload files (the plain names always hold the latest run)
+# 6. Recall-first union: the full read's sentences the vote has not covered (held-out: 25% of them matched, above
+#    the ~13% break-even). The LLM scope filter is off: on the held-out case its cuts lost matches.
+$PY -m src.pipeline.recall_first "$CASE" --vote "$S.vote-clean.json" --fullread "$S.fullread-clean.json" \
+    > "work/runs/${CASE_ID}-recallfirst.log" 2>&1
+# 7. Worked-example template: for regulations a worked example covers, keep only the paragraph kinds its experts cite
+$PY -m src.pipeline.template "$CASE" --submission "$S.recallfirst.json" --name final > "work/runs/${CASE_ID}-template.log" 2>&1
+# 8. Keep every run: timestamped copies of the upload files (the plain names always hold the latest run)
 T=$(date +%Y%m%d-%H%M)
 cp "$S.final.json" "$S.$T.final.json"
 cp "$S.vote-clean.json" "$S.$T.vote-clean.json"

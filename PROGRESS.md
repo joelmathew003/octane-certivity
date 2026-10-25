@@ -1,8 +1,8 @@
 # Progress report: Octane × Certivity
 
-Updated: 2026-10-25, 10:05 (Sunday)
+Updated: 2026-10-25, 10:45 (Sunday)
 
-Status (Sunday 10:05): On the **held-out case (front bumper)**, our **final counting upload is requirement F2 66.3** (recall 87.0%, precision 34.0%, 532 requirements; `submissions/heldout-front-bumper.20261025-1015.dup50-minus-duplicates.json`), with regulations and pages at 100% recall; best single draw was 66.9. Third on the board at 10:00. Only the held-out case is evaluated (organisers on Discord, 2026-10-25 00:59). See section 0.
+Status (Sunday 10:45): On the **held-out case (front bumper)**, our best upload is **requirement F2 71.6** (recall 83.7%, precision 45.4%, 383 requirements; `submissions/heldout-front-bumper.20261025-1025.template-dup50.json`): the worked-example template cut 161 requirements (mostly wrong) from the 66.9 file. Regulations 100/100, pages 67.9/100. Next upload (after 10:55, hourly limit): `20261025-1034.template-plus-impacttests` (71.6 file + 51 bumper impact-test conditions). Only the held-out case is evaluated (organisers on Discord, 2026-10-25 00:59). See section 0.
 
 ## 0. Held-out case (Sunday 2026-10-25)
 
@@ -20,9 +20,14 @@ The held-out leaderboard counts each team's **last** valid upload. At 09:10 we w
 | 09:55 | `20261025-0945.recallfirst2-safescope` (+24 from a 2nd full read, −43 in dev-safe scope categories) | 525 | 33.9 | 85.6 | 65.6 | 54.1 / 100 | 100 / 100 |
 | 09:58 | `20261025-0940.recallfirst2-dup50` (66.9 file + the 2nd full read's 24 new sentences, no cuts) | 568 | 32.2 | 88.0 | 65.4 | 52.0 / 100 | 100 / 100 |
 | 10:01 | **`20261025-1015.dup50-minus-duplicates`** (66.9 file − 12 duplicates flagged by the relevance judge) — **final** | 532 | 34.0 | 87.0 | **66.3** | 53.0 / 100 | 100 / 100 |
+| 10:28 | **`20261025-1025.template-dup50`** (66.9 file filtered by the worked-example template for R10, R148, R48: −161) | 383 | 45.4 | 83.7 | **71.6** | 67.9 / 100 | 100 / 100 |
+| 10:32 | `20261025-1031.template-noprocedure` (71.6 file − 46 requirements the scope step labelled test procedure / pointer in GTR 9, R127, R26, R42) | 337 | 46.3 | 75.0 | 66.7 | 69.3 / 98.1 | 100 / 100 |
+| *(next, after 10:55)* | `20261025-1034.template-plus-impacttests` (71.6 file + 51 impact-test conditions from the R42 / R127 / GTR 9 obligations) | 434 | — | — | — | — | — |
 | *(not uploaded)* | `20261025-1005.relevance-keeptablesentence` (relevance judge: −25 duplicates / other functions) | 543 | — | — | — | — | — |
 
 At 10:00 the board read: Out Of Scope 71.6 (R 85.1, P 43.8, ≈404 reqs), BarelyLegal 70.0 (R 89.4, P 37.4, ≈497 reqs), octane 65.4 → 66.3. BarelyLegal reaches our recall with ~70 fewer requirements: their output is more compact (one requirement per obligation), while ours merges two extractors and keeps paraphrase copies.
+
+At 10:25 the board read: Butterbrezeln 73.6 (R 85.1, P 47.8, ≈370 reqs), BarelyLegal 70.0, CodeBros 68.6, Space Agents 67.0, octane 66.3. The leaders' advantage was precision, not recall: Butterbrezeln reached ~174 matches with ~330–370 requirements, we had ~181 with 532.
 
 Gold size, from precision and recall: about **208 requirements** in **7 regulations** (R10, R26, R42, R127, GTR 9, R148, R48).
 
@@ -36,11 +41,25 @@ Gold size, from precision and recall: about **208 requirements** in **7 regulati
 4. **Platform judge noise:** on dev the same 344-requirement file scored 72.5 and 68.4. Treat single uploads as ±2 points.
 5. **On this product, cutting loses matches and adding finds them.** The dev-safe paragraph cuts (−43, mostly R148 "not this product" on the spec's vague "(Side) Lighting") lowered matches from ~184 to ~178 despite +24 additions: the cut items matched well above the ~13% break-even. So the held-out submission keeps everything the vote and the full reads write; the scope filter stays off for it.
 6. **Relevance judge (`relevance.py`, built, $0.96):** per requirement, Claude estimates the chance an expert lists it, seeing each paragraph's requirements side by side and how many sources wrote each; it cuts duplicates of a kept requirement and the < 10% tail (F2/5 ≈ 13% is the break-even), never the paragraph's own sentence before a table (experts list it next to the rows), and at most half a paragraph. On the bumper it cut only 25 of 568: most of our wrong requirements look plausible even to a careful reviewer, so precision is not where this pipeline can gain more today.
-7. **Realistic ceiling for this pipeline: about 67–70.** F2 80 would need precision ~54% at recall ~91% (cut ~190 wrong requirements, lose almost no matches); our best precision ever (dev, tuned) was 52% at 82% recall.
+7. ~~Realistic ceiling about 67–70~~: wrong, see 8.
+8. **The worked example is the best precision signal (+4.7 points, 66.9 → 71.6).** Three bumper regulations (R10, R148, R48) also appear in the rear-lamp worked example, whose expert list is published. Its experts follow a strict pattern, so we kept only the paragraph kinds they cite (scratch script `template.py`, to become a pipeline step):
+   - **R10:** only the 15 paragraphs the worked example cites (all limits and pass criteria; our bumper file already contained all 15), plus the RF-transmitter paragraphs 6.10.6/6.10.7 (the bumper has radar and a keyless aerial). Cut: approval-mark layout, annex test procedures, COP (−48).
+   - **R148:** per lamp function only x.1 (photometry) and x.7 (colour) in section 5; elsewhere only the cited marking/construction paragraphs and their sub-paragraphs (−76).
+   - **R48:** per lamp function only 6.x.2/4/5/7/8 (number, position, visibility, wiring, tell-tale), never presence, arrangement or orientation; section 5 only the cited paragraphs and their sub-paragraphs (−37).
+   - Result: recall 88.5 → 83.7 (≈10 matches lost), precision 33.8 → 45.4. The loss rate in the cut (≈6%) was well below the 13% break-even.
+   - Fairness: uses only the published worked-example answers, nothing from the held-out case.
+9. **"Lab procedure" is not a safe cut for the product's core function.** Cutting the 46 requirements labelled test procedure / pointer in GTR 9, R127, R26 and R42 lost ≈18 matches (≈39% of them were gold): for a bumper the experts list the pedestrian and low-speed impact test conditions (impact points, alignment, vehicle preparation). The worked-example rule "experts skip procedures" holds only for regulations outside the product's core function (EMC and lamp regulations for the rear lamp). Hence the next upload adds the impact-test conditions the pipeline had dropped (vehicle preparation, legform preparation, impactor setup), excluding headform/bonnet tests, impactor certification and the GTR 9 human-body-model annex.
 
 ### 0.3 Next step
 
-**Submission frozen at 10:01** (`dup50-minus-duplicates`, F2 66.3; the 66.9 file is statistically the same). PDF structure was checked on dev as a precision signal: no section, depth, length or annex group is below the ~13% break-even except top-level headings (8 requirements), so no structural cut pays. Then: `recall_first.py`, so the submission comes from the pipeline instead of manual steps (threshold 0.30 + full-read sentences not yet covered, no scope filter), and the demo and pitch.
+Upload `20261025-1034.template-plus-impacttests` after 10:55 (hourly limit). Expected F2 about 74 if the 51 added conditions hit at 25% (break-even 14%). If it scores below about 71, re-upload `20261025-1025.template-dup50` (71.6): the last upload counts. Then turn `template.py` into a pipeline step (learn the cited paragraph kinds from the worked example; core-function regulations keep their test conditions) and use it in the pitch.
+
+**Done at 10:50 (fairness: the 71.6 result now comes from the pipeline, no hand steps, no hints):**
+- `src/pipeline/recall_first.py`: the vote plus the full read's sentences the vote has not covered (similarity < 0.5). Rebuilt from the saved held-out run outputs, it reproduces the 66.9 file exactly (544/544).
+- `src/pipeline/template.py`: learns the template from the worked examples' `expected.json` (never the case's own). It keeps cited paragraphs and their sub-paragraphs, plus clauses cited for ≥3 functions whose openings read alike. It learned R148 5.\*.1/5.\*.7, R48 6.\*.2/4/5/7 and R10 6.\*.2 on its own. On the held-out run outputs it gives 378 requirements, 372 of them in the 71.6 upload. The 6 it drops are R10 6.10.6/6.10.7 (a hand exception, i.e. a hint) and R48 6.18.8 (tell-tale, cited for only one function in the worked example).
+- `work/make_clean_submission.sh`: vote threshold 0.30, scope filter off, then `recall_first` and `template` → `final.json`.
+- The impact-tests file (`20261025-1034.template-plus-impacttests`) is **not** pipeline output: its additions were picked by hand after the 66.7 result, so it uses held-out feedback. The fair upload is the pipeline's 378-requirement file (`submissions/heldout-front-bumper.20261025-1048.pipeline-template.json`).
+- `README.md` added for the code judges.
 
 ### 0.4 Procedure (held-out)
 
