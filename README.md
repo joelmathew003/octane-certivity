@@ -7,7 +7,10 @@ the Certivity challenge of the Industrial AI Hackathon (team octane, `team-16`).
 | Held-out case (front bumper) | Requirement F2 | Recall | Precision | Pages (P / R) | Regulations (P / R) |
 |---|---|---|---|---|---|
 | First run, pipeline as it was | 56.1 | 59.6 | 45.4 | 63.0 / 86.8 | 77.8 / 100 |
-| **Current pipeline** (verifier, recall-first union, worked-example template) | **71.6** | 83.7 | 45.4 | 67.9 / 100 | 100 / 100 |
+| Verifier, recall-first union, worked-example template | 71.6 | 83.7 | 45.4 | 67.9 / 100 | 100 / 100 |
+| One run of the current pipeline (+ expert memory, 3-shortlist selection) | 74.9 | 85.1 | 50.7 | 65.8 / 94.3 | 100 / 100 |
+| Majority of 5 independent runs | 76.2 | 86.5 | 51.6 | 67.1 / 96.2 | 100 / 100 |
+| **Majority of 9 independent runs** (`work/make_ensemble_submission.sh`) | **77.1** | 86.5 | 53.7 | 70.4 / 94.3 | 100 / 100 |
 
 The leaderboard ranks by requirement-level F2, which weights recall more than precision. Every upload, and what
 each change did to the score, is in [PROGRESS.md](PROGRESS.md), section 0.
@@ -38,8 +41,11 @@ spec.md + drawing
    ├─ 6. Expert memory ─ paragraphs a worked example cites get its experts' own     memory.py
    │                     requirements; lamp-function slots capped at the experts' count
    │
-   └─ 7. Citation check ─ every paragraph exists, page and version match the base     citations.py
-                          file, every number appears in the cited paragraph
+   ├─ 7. Citation check ─ every paragraph exists, page and version match the base     citations.py
+   │                      file, every number appears in the cited paragraph
+   │
+   └─ 8. Majority of N runs ─ steps 1-7 run N times independently; keep what most    ensemble.py
+                              runs write (one-offs are mostly wrong)
 ```
 
 Underneath: [index_pdfs.py](src/pipeline/index_pdfs.py) splits every regulation PDF (PyMuPDF) into paragraphs with
@@ -72,6 +78,12 @@ cached by paragraph text, so a regulation is paid for only once. The architectur
   wording) instead of its own. In a lamp-function slot that template.py learned, it keeps at most as many requirements
   as the experts wrote for that slot. It never adds a paragraph the pipeline did not choose. On the bumper, the 119
   requirements in remembered paragraphs became the experts' 106, and slot caps removed 12 more (378 → 353).
+- **Majority of independent runs.** The model calls differ from run to run, so each run writes a few requirements
+  the others do not. On the dev case (3 runs, before the template and memory), a requirement only 1 run writes
+  matches the experts about 10% of the time, one all 3 write about 46%. [ensemble.py](src/pipeline/ensemble.py)
+  groups the runs' requirements one to one per paragraph and keeps those most runs write. Recall stays the same and
+  precision goes up: on the bumper, 1 run 74.9, majority of 5 76.2, majority of 9 77.1. It also covers a bad run:
+  one of the 9 left out GTR 9 at selection and was outvoted.
 - **Every citation checked by code.** Page and version come from the base PDF, never from the model, and a number in
   a requirement that the cited paragraph does not contain is reported.
 - **Prompts are files.** Every prompt is in [src/pipeline/prompts/](src/pipeline/prompts/). No prompt contains an
@@ -98,11 +110,13 @@ uv pip install --python .venv/bin/python -r requirements.txt
 printf 'ANTHROPIC_API_KEY=...\nTEAM_ID=team-16\n' > .env
 .venv/bin/python -m src.pipeline.index_pdfs             # paragraph index; the SQLite DB rebuilds itself from it
 
-work/make_clean_submission.sh cases/heldout-front-bumper
+work/make_clean_submission.sh cases/heldout-front-bumper        # one run, steps 1-7
+work/make_ensemble_submission.sh cases/heldout-front-bumper 9   # step 8: 9 runs in parallel, then the majority
 ```
 
-The script runs steps 1 to 7 and writes `submissions/<case>.<YYYYMMDD-HHMM>.final.json`, which is the file to
-upload. Each step logs to `work/runs/<case>-*.log`; the regulation verifier's decisions, with quotes, are in
+`make_clean_submission.sh` runs steps 1 to 7 and writes `submissions/<case>.<YYYYMMDD-HHMM>.final.json`.
+`make_ensemble_submission.sh` runs it N times in parallel on copies of the case and writes
+`submissions/<case>.<YYYYMMDD-HHMM>.ensemble<N>.json`, the file we upload. Each step logs to `work/runs/<case>-*.log`; the regulation verifier's decisions, with quotes, are in
 `work/runs/<case>/selection_check.json`. A case takes about 15 minutes and about $7 in API calls, plus about $4 for
 each selected regulation that has no obligation database yet. Steps 3 to 7 make no model calls, so they can be rerun
 for free:
@@ -127,7 +141,8 @@ gives its usage, its inputs and outputs, and its cost.
 | `src/pipeline/prompts/` | All prompts, as Markdown templates. |
 | `src/pipeline/subgoal.py` | Sub-challenge: what changed between two versions of a regulation. |
 | `src/api/`, `frontend/`, `run_demo.sh` | Demo UI and its API server (see `frontend/README.md`). |
-| `work/make_clean_submission.sh` | The whole chain for one case. |
+| `work/make_clean_submission.sh` | The whole chain for one case (one run). |
+| `work/make_ensemble_submission.sh` | N runs in parallel, then the majority (step 8). |
 | `work/regulations.db` | SQLite database: catalogue, paragraphs (FTS5), obligations. |
 | `data/` | The challenge kit: cases, catalogue, tools. PDFs are downloaded, not committed. |
 | `submissions/` | Every submission file, timestamped; nothing is overwritten. |
