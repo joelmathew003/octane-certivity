@@ -2,7 +2,7 @@
 
 Updated: 2026-10-25, 10:45 (Sunday)
 
-Status (Sunday 11:55): best upload **F2 74.9** from a fresh one-shot run (`20261025-1138.final`, 349 requirements, P 50.7, R 85.1); the run built from the morning's outputs scored 74.7 (310 identical requirements), the union of both 74.8 (its 29 extra obligations matched at ≈14%, the break-even). 3rd behind Butterbrezeln 77.4 and BarelyLegal 77.1. Earlier: our best upload was **requirement F2 71.6** (recall 83.7%, precision 45.4%, 383 requirements; `submissions/heldout-front-bumper.20261025-1025.template-dup50.json`): the worked-example template cut 161 requirements (mostly wrong) from the 66.9 file. Regulations 100/100, pages 67.9/100. Next upload (after 10:55, hourly limit): `20261025-1034.template-plus-impacttests` (71.6 file + 51 bumper impact-test conditions). Only the held-out case is evaluated (organisers on Discord, 2026-10-25 00:59). See section 0.
+Status (Sunday 12:05): best upload **F2 76.2**: majority of 5 independent one-shot runs (`20261025-1200.ensemble5-min3`, 349 requirements, P 51.6, R 86.5); single runs scored 74.7 and 74.9. Same size as one run, ≈3 more matches. Dev calibration of a stricter cut (≥ 4 of 5) is running. Earlier status: best upload **F2 74.9** from a fresh one-shot run (`20261025-1138.final`, 349 requirements, P 50.7, R 85.1); the run built from the morning's outputs scored 74.7 (310 identical requirements), the union of both 74.8 (its 29 extra obligations matched at ≈14%, the break-even). 3rd behind Butterbrezeln 77.4 and BarelyLegal 77.1. Earlier: our best upload was **requirement F2 71.6** (recall 83.7%, precision 45.4%, 383 requirements; `submissions/heldout-front-bumper.20261025-1025.template-dup50.json`): the worked-example template cut 161 requirements (mostly wrong) from the 66.9 file. Regulations 100/100, pages 67.9/100. Next upload (after 10:55, hourly limit): `20261025-1034.template-plus-impacttests` (71.6 file + 51 bumper impact-test conditions). Only the held-out case is evaluated (organisers on Discord, 2026-10-25 00:59). See section 0.
 
 ## 0. Held-out case (Sunday 2026-10-25)
 
@@ -26,6 +26,7 @@ The held-out leaderboard counts each team's **last** valid upload. At 09:10 we w
 | 11:42 | **`20261025-1116.pipeline-memory-caps`** (70.7 pipeline file + expert memory + slot caps, `memory.py`) | 353 | 50.1 | 85.1 | **74.7** | 67.5 / 98.1 | 100 / 100 |
 | 11:46 | **`20261025-1138.final`** (fresh one-shot run of `make_clean_submission.sh`, nothing reused) | 349 | 50.7 | 85.1 | **74.9** | 65.8 / 94.3 | 100 / 100 |
 | 11:50 | `20261025-1148.ensemble-2runs` (1138 run + 29 obligations only the 1116 run states) | 378 | 47.9 | 87.0 | 74.8 | 65.0 / 98.1 | 100 / 100 |
+| 12:02 | **`20261025-1200.ensemble5-min3`** (5 independent runs of `make_clean_submission.sh`; keep obligations stated by ≥ 3 of 5: support 5/4/3/2/1 = 286/32/31/12/58) | 349 | 51.6 | 86.5 | **76.2** | 67.1 / 96.2 | 100 / 100 |
 | 10:58 | **`20261025-1048.pipeline-template`** (pipeline output, no hand steps: verifier → vote 0.30 → `recall_first.py` → `template.py`; file said team-00, credited to team-16; rebuilt with team-16 as `…1058.pipeline-template`) | 378 | 45.2 | 82.2 | **70.7** | 67.5 / 98.1 | 100 / 100 |
 | *(not uploaded)* | `20261025-1005.relevance-keeptablesentence` (relevance judge: −25 duplicates / other functions) | 543 | — | — | — | — | — |
 
