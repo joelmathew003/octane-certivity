@@ -28,6 +28,7 @@ The held-out leaderboard counts each team's **last** valid upload. At 09:10 we w
 | 11:50 | `20261025-1148.ensemble-2runs` (1138 run + 29 obligations only the 1116 run states) | 378 | 47.9 | 87.0 | 74.8 | 65.0 / 98.1 | 100 / 100 |
 | 12:02 | **`20261025-1200.ensemble5-min3`** (5 independent runs of `make_clean_submission.sh`; keep obligations stated by ≥ 3 of 5: support 5/4/3/2/1 = 286/32/31/12/58) | 349 | 51.6 | 86.5 | **76.2** | 67.1 / 96.2 | 100 / 100 |
 | 12:19 | **`20261025-1215.ensemble9-min5`** (9 independent runs; keep obligations stated by ≥ 5 of 9: support 9…1 = 217/66/18/17/17/13/16/20/48; run r6 had dropped GTR 9 and is outvoted) | 335 | 53.7 | 86.5 | **77.1** | 70.4 / 94.3 | 100 / 100 |
+| 12:52 | `20261025-1251.ensemble11-min6` (11 independent runs, 2 more on the backup key; ≥ 6 of 11: support 11…1 = 216/64/16/13/16/11/9/13/12/34/39) | 336 | pending | | | | |
 | 10:58 | **`20261025-1048.pipeline-template`** (pipeline output, no hand steps: verifier → vote 0.30 → `recall_first.py` → `template.py`; file said team-00, credited to team-16; rebuilt with team-16 as `…1058.pipeline-template`) | 378 | 45.2 | 82.2 | **70.7** | 67.5 / 98.1 | 100 / 100 |
 | *(not uploaded)* | `20261025-1005.relevance-keeptablesentence` (relevance judge: −25 duplicates / other functions) | 543 | — | — | — | — | — |
 
