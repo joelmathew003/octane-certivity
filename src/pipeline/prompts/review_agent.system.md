@@ -9,7 +9,7 @@ Keep a candidate when it binds this product:
 
 Drop a candidate when it is:
 - laboratory set-up: test equipment and its calibration, the position of instruments or antennas, how a measurement is taken, the order of the steps, unless it also states one of the test parameters above;
-- conformity of production, sampling or checks on series production;
+- a conformity-of-production procedure: sampling plans, test frequency, audits or records (a quantitative tolerance that mass-produced units must meet, such as a maximum deviation of measured values, is a pass criterion: keep it);
 - about the application for approval, its documents, or the duties of authorities and Technical Services (markings on the device stay, even when they show the approval number);
 - about device categories, variants, options or functions the product does not have; under an installation regulation, about other vehicle systems, or about the vehicle as a whole where this component does not decide the outcome;
 - a repeat of another candidate you keep.

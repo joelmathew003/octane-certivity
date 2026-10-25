@@ -10,6 +10,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 import anthropic
+# the SDK streams over httpx2: a connection dropped mid-stream surfaces as its TransportError, not as an APIError
+from httpx2 import TransportError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODEL = "claude-opus-5-5"
@@ -64,7 +66,7 @@ def _send(system: str, messages: list[dict], schema: dict, effort: str, tools: l
             ) as stream:
                 response = stream.get_final_message()
             break
-        except (anthropic.APIConnectionError, anthropic.RateLimitError, anthropic.InternalServerError) as exc:
+        except (anthropic.APIConnectionError, anthropic.RateLimitError, anthropic.InternalServerError, TransportError) as exc:
             last_err = exc
             if attempt == retries - 1:
                 raise

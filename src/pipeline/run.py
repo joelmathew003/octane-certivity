@@ -108,6 +108,38 @@ def select_regulations(spec: str, images: list[dict]) -> list[dict]:
     return llm.ask_json(prompts.render("select.system"), content, select_schema())["regulations"]
 
 
+VERIFY_SUBJECTS = ["product_or_part", "installation_of_product", "horizontal_technology", "whole_vehicle_performance",
+                   "other_system"]
+HEADINGS_CHARS = 6000
+
+
+def headings(regulation: str) -> str:
+    """Section and sub-section headings (labels with at most one dot), each with the start of its text."""
+    lines = [f"{r['paragraph']} {r['text'][:100]}" for r in regs.paragraphs(regulation)
+             if not r["paragraph"].startswith(("Rationale", "Preamble")) and r["paragraph"].count(".") <= 1]
+    return "\n".join(lines)[:HEADINGS_CHARS]
+
+
+def verify(choice: dict, spec: str, images: list[dict]) -> dict:
+    """One shortlisted regulation, asked on its own: is its subject this product, or whole-vehicle performance?"""
+    schema = {"type": "object", "properties": {"subject": {"type": "string", "enum": VERIFY_SUBJECTS},
+                                               "evidence": {"type": "string"}, "keep": {"type": "boolean"}},
+              "required": ["subject", "evidence", "keep"], "additionalProperties": False}
+    task = prompts.render("select_verify.task", spec=spec, regulation=choice["regulation"],
+                          overview=regs.overview(choice["regulation"]), headings=headings(choice["regulation"]),
+                          reason=choice["reason"])
+    answer = llm.ask_json(prompts.render("select_verify.system"), [*images, {"type": "text", "text": task}], schema,
+                          effort="medium")
+    return {**choice, **answer, "keep": answer["keep"] and answer["subject"] in VERIFY_SUBJECTS[:3]}
+
+
+def verify_selection(selected: list[dict], spec: str, images: list[dict], workers: int) -> list[dict]:
+    """The broad selection over-includes regulations the product only contributes to (on the held-out front bumper:
+    a whole-vehicle crash test and emergency braking), so each shortlisted regulation is checked on its own."""
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(lambda choice: verify(choice, spec, images), selected))
+
+
 def extract(regulation: str, reason: str, spec: str, images: list[dict] | None = None) -> list[dict]:
     content = [
         {"type": "text", "text": prompts.render("regulation", regulation_text=regs.render(regulation)),
@@ -181,7 +213,12 @@ def main() -> None:
         selected = [{"regulation": r, "role": "given", "reason": "chosen on the command line"} for r in args.regulations]
     else:
         print("[select] reading the catalogue ...", flush=True)
-        selected = select_regulations(spec, images)
+        checked = verify_selection(select_regulations(spec, images), spec, images, args.workers)
+        (run_dir / "selection_check.json").write_text(json.dumps(checked, indent=2, ensure_ascii=False), encoding="utf-8")
+        for choice in checked:
+            if not choice["keep"]:
+                print(f"[verify] dropped {choice['regulation']:9s} ({choice['subject']}): {choice['evidence'][:100]}")
+        selected = [{k: c[k] for k in ("regulation", "role", "reason")} for c in checked if c["keep"]]
         (run_dir / "selected.json").write_text(json.dumps(selected, indent=2, ensure_ascii=False), encoding="utf-8")
     for choice in selected:
         print(f"[select] {choice['regulation']:9s} {choice['role']:12s} {choice['reason'][:110]}")
