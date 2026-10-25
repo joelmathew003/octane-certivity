@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="400" viewBox="0 0 1640 400" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+    </marker>
+  </defs>
+  <rect width="1640" height="400" fill="#ffffff"/>
+  <text x="820" y="34" text-anchor="middle" font-size="22" font-weight="bold" fill="#111">Octane × Certivity: product spec → UN Regulation requirements</text>
+
+  <!-- one run frame -->
+  <rect x="168" y="62" width="1124" height="300" rx="14" fill="#f7f8fa" stroke="#9aa3ad" stroke-dasharray="7 5"/>
+  <text x="182" y="84" font-size="14" fill="#5b6570">one run (Claude + SQLite, ~8 min) · run 9× in parallel</text>
+
+  <!-- input -->
+  <rect x="20" y="160" width="128" height="110" rx="10" fill="#eef1f4" stroke="#6b7680"/>
+  <text x="84" y="205" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">Spec</text>
+  <text x="84" y="227" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">+ drawing</text>
+
+  <!-- 1 select -->
+  <rect x="188" y="130" width="190" height="170" rx="10" fill="#e3edfb" stroke="#3b6fb6"/>
+  <text x="283" y="162" text-anchor="middle" font-size="16" font-weight="bold" fill="#123">1 · Select</text>
+  <text x="283" y="190" text-anchor="middle" font-size="14" fill="#223">3 shortlists from</text>
+  <text x="283" y="208" text-anchor="middle" font-size="14" fill="#223">the catalogue</text>
+  <text x="283" y="236" text-anchor="middle" font-size="14" fill="#223">verifier, 3-run</text>
+  <text x="283" y="254" text-anchor="middle" font-size="14" fill="#223">majority per regulation</text>
+
+  <!-- 2 read -->
+  <rect x="408" y="100" width="250" height="236" rx="10" fill="#e6f4ea" stroke="#2f8a4a"/>
+  <text x="533" y="124" text-anchor="middle" font-size="16" font-weight="bold" fill="#123">2 · Read three ways</text>
+  <rect x="422" y="138" width="222" height="52" rx="8" fill="#fff" stroke="#2f8a4a"/>
+  <text x="533" y="160" text-anchor="middle" font-size="14" fill="#223">full read, paragraph</text>
+  <text x="533" y="178" text-anchor="middle" font-size="14" fill="#223">by paragraph</text>
+  <rect x="422" y="200" width="222" height="60" rx="8" fill="#fff" stroke="#2f8a4a"/>
+  <text x="533" y="222" text-anchor="middle" font-size="14" fill="#223">obligation DB → SQL filter</text>
+  <text x="533" y="241" text-anchor="middle" font-size="14" fill="#223">→ strict + lenient review</text>
+  <rect x="422" y="270" width="222" height="52" rx="8" fill="#fff" stroke="#2f8a4a"/>
+  <text x="533" y="292" text-anchor="middle" font-size="14" fill="#223">paragraph judge</text>
+  <text x="533" y="310" text-anchor="middle" font-size="14" fill="#223">(would an expert cite it?)</text>
+
+  <!-- 3 vote -->
+  <rect x="688" y="130" width="170" height="170" rx="10" fill="#fff4e0" stroke="#c07a12"/>
+  <text x="773" y="162" text-anchor="middle" font-size="16" font-weight="bold" fill="#123">3 · Vote</text>
+  <text x="773" y="190" text-anchor="middle" font-size="14" fill="#223">calibrated weights</text>
+  <text x="773" y="208" text-anchor="middle" font-size="14" fill="#223">threshold 0.30</text>
+  <text x="773" y="236" text-anchor="middle" font-size="14" fill="#223">+ recall-first</text>
+  <text x="773" y="254" text-anchor="middle" font-size="14" fill="#223">union (F2 ↑ recall)</text>
+
+  <!-- 4 expert style -->
+  <rect x="888" y="130" width="200" height="170" rx="10" fill="#f1e8fb" stroke="#7a4bb5"/>
+  <text x="988" y="162" text-anchor="middle" font-size="16" font-weight="bold" fill="#123">4 · Expert style</text>
+  <text x="988" y="190" text-anchor="middle" font-size="14" fill="#223">from the worked example:</text>
+  <text x="988" y="214" text-anchor="middle" font-size="14" fill="#223">template: paragraph</text>
+  <text x="988" y="232" text-anchor="middle" font-size="14" fill="#223">kinds experts cite</text>
+  <text x="988" y="256" text-anchor="middle" font-size="14" fill="#223">memory: their wording</text>
+
+  <!-- 5 citations -->
+  <rect x="1118" y="130" width="160" height="170" rx="10" fill="#fde8e8" stroke="#b83b3b"/>
+  <text x="1198" y="162" text-anchor="middle" font-size="16" font-weight="bold" fill="#123">5 · Citations</text>
+  <text x="1198" y="190" text-anchor="middle" font-size="14" fill="#223">checked by code</text>
+  <text x="1198" y="214" text-anchor="middle" font-size="14" fill="#223">page + version</text>
+  <text x="1198" y="232" text-anchor="middle" font-size="14" fill="#223">from the base PDF</text>
+  <text x="1198" y="256" text-anchor="middle" font-size="14" fill="#223">numbers in text</text>
+
+  <!-- 6 majority -->
+  <rect x="1322" y="130" width="160" height="170" rx="10" fill="#e0f3f5" stroke="#1d7f8c" stroke-width="2"/>
+  <text x="1402" y="162" text-anchor="middle" font-size="16" font-weight="bold" fill="#123">6 · Majority</text>
+  <text x="1402" y="190" text-anchor="middle" font-size="14" fill="#223">of 9 runs</text>
+  <text x="1402" y="214" text-anchor="middle" font-size="14" fill="#223">keep what ≥ 5</text>
+  <text x="1402" y="232" text-anchor="middle" font-size="14" fill="#223">runs write;</text>
+  <text x="1402" y="256" text-anchor="middle" font-size="14" fill="#223">one-offs dropped</text>
+
+  <!-- output -->
+  <rect x="1512" y="160" width="110" height="110" rx="10" fill="#eef1f4" stroke="#6b7680"/>
+  <text x="1567" y="200" text-anchor="middle" font-size="15" font-weight="bold" fill="#111">Require-</text>
+  <text x="1567" y="220" text-anchor="middle" font-size="15" font-weight="bold" fill="#111">ments</text>
+  <text x="1567" y="242" text-anchor="middle" font-size="13" fill="#333">JSON</text>
+
+  <!-- arrows -->
+  <g stroke="#444" stroke-width="2" marker-end="url(#a)">
+    <line x1="148" y1="215" x2="186" y2="215"/>
+    <line x1="378" y1="215" x2="406" y2="215"/>
+    <line x1="658" y1="215" x2="686" y2="215"/>
+    <line x1="858" y1="215" x2="886" y2="215"/>
+    <line x1="1088" y1="215" x2="1116" y2="215"/>
+    <line x1="1278" y1="215" x2="1320" y2="215"/>
+    <line x1="1482" y1="215" x2="1510" y2="215"/>
+  </g>
+
+  <text x="820" y="388" text-anchor="middle" font-size="15" fill="#333">Held-out front bumper, requirement F2: 1 run 74.9 → majority of 5 runs 76.2 → majority of 9 runs 77.1 · regulations 100%</text>
+</svg>

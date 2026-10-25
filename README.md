@@ -4,6 +4,8 @@ Given a product specification and its drawing, this pipeline lists every require
 UN Regulations. Each requirement cites its regulation, base version, page and paragraph. The pipeline was built for
 the Certivity challenge of the Industrial AI Hackathon (team octane, `team-16`).
 
+![Architecture: select, read three ways, vote, expert style, citation check, majority of 9 runs](docs/architecture-simple.png)
+
 | Held-out case (front bumper) | Requirement F2 | Recall | Precision | Pages (P / R) | Regulations (P / R) |
 |---|---|---|---|---|---|
 | First run, pipeline as it was | 56.1 | 59.6 | 45.4 | 63.0 / 86.8 | 77.8 / 100 |
