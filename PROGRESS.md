@@ -22,7 +22,8 @@ The held-out leaderboard counts each team's **last** valid upload. At 09:10 we w
 | 10:01 | **`20261025-1015.dup50-minus-duplicates`** (66.9 file − 12 duplicates flagged by the relevance judge) — **final** | 532 | 34.0 | 87.0 | **66.3** | 53.0 / 100 | 100 / 100 |
 | 10:28 | **`20261025-1025.template-dup50`** (66.9 file filtered by the worked-example template for R10, R148, R48: −161) | 383 | 45.4 | 83.7 | **71.6** | 67.9 / 100 | 100 / 100 |
 | 10:32 | `20261025-1031.template-noprocedure` (71.6 file − 46 requirements the scope step labelled test procedure / pointer in GTR 9, R127, R26, R42) | 337 | 46.3 | 75.0 | 66.7 | 69.3 / 98.1 | 100 / 100 |
-| *(next, after 10:55)* | `20261025-1034.template-plus-impacttests` (71.6 file + 51 impact-test conditions from the R42 / R127 / GTR 9 obligations) | 434 | — | — | — | — | — |
+| *(not uploaded: hand-picked after the 66.7 result, i.e. held-out feedback)* | `20261025-1034.template-plus-impacttests` (71.6 file + 51 impact-test conditions from the R42 / R127 / GTR 9 obligations) | 434 | — | — | — | — | — |
+| 10:58 | **`20261025-1048.pipeline-template`** (pipeline output, no hand steps: verifier → vote 0.30 → `recall_first.py` → `template.py`; file said team-00, credited to team-16; rebuilt with team-16 as `…1058.pipeline-template`) | 378 | 45.2 | 82.2 | **70.7** | 67.5 / 98.1 | 100 / 100 |
 | *(not uploaded)* | `20261025-1005.relevance-keeptablesentence` (relevance judge: −25 duplicates / other functions) | 543 | — | — | — | — | — |
 
 At 10:00 the board read: Out Of Scope 71.6 (R 85.1, P 43.8, ≈404 reqs), BarelyLegal 70.0 (R 89.4, P 37.4, ≈497 reqs), octane 65.4 → 66.3. BarelyLegal reaches our recall with ~70 fewer requirements: their output is more compact (one requirement per obligation), while ours merges two extractors and keeps paraphrase copies.
