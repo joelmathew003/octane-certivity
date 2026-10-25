@@ -2,7 +2,7 @@
 
 Updated: 2026-10-25, 10:45 (Sunday)
 
-Status (Sunday 11:45): best upload **F2 74.7** (P 50.1, R 85.1, 353 requirements, `20261025-1116.pipeline-memory-caps`, pipeline output with expert memory); 2nd behind Butterbrezeln 77.4. Earlier: our best upload was **requirement F2 71.6** (recall 83.7%, precision 45.4%, 383 requirements; `submissions/heldout-front-bumper.20261025-1025.template-dup50.json`): the worked-example template cut 161 requirements (mostly wrong) from the 66.9 file. Regulations 100/100, pages 67.9/100. Next upload (after 10:55, hourly limit): `20261025-1034.template-plus-impacttests` (71.6 file + 51 bumper impact-test conditions). Only the held-out case is evaluated (organisers on Discord, 2026-10-25 00:59). See section 0.
+Status (Sunday 11:55): best upload **F2 74.9** from a fresh one-shot run (`20261025-1138.final`, 349 requirements, P 50.7, R 85.1); the run built from the morning's outputs scored 74.7 (310 identical requirements), the union of both 74.8 (its 29 extra obligations matched at ≈14%, the break-even). 3rd behind Butterbrezeln 77.4 and BarelyLegal 77.1. Earlier: our best upload was **requirement F2 71.6** (recall 83.7%, precision 45.4%, 383 requirements; `submissions/heldout-front-bumper.20261025-1025.template-dup50.json`): the worked-example template cut 161 requirements (mostly wrong) from the 66.9 file. Regulations 100/100, pages 67.9/100. Next upload (after 10:55, hourly limit): `20261025-1034.template-plus-impacttests` (71.6 file + 51 bumper impact-test conditions). Only the held-out case is evaluated (organisers on Discord, 2026-10-25 00:59). See section 0.
 
 ## 0. Held-out case (Sunday 2026-10-25)
 
@@ -24,6 +24,8 @@ The held-out leaderboard counts each team's **last** valid upload. At 09:10 we w
 | 10:32 | `20261025-1031.template-noprocedure` (71.6 file − 46 requirements the scope step labelled test procedure / pointer in GTR 9, R127, R26, R42) | 337 | 46.3 | 75.0 | 66.7 | 69.3 / 98.1 | 100 / 100 |
 | 11:01 | `20261025-1034.template-plus-impacttests` (hand-picked after the 66.7 result, i.e. held-out feedback; only ≈3 of 51 matched, ≈6%, below the 14% break-even) (71.6 file + 51 impact-test conditions from the R42 / R127 / GTR 9 obligations) | 434 | 40.8 | 85.1 | 69.9 | 66.2 / 100 | 100 / 100 |
 | 11:42 | **`20261025-1116.pipeline-memory-caps`** (70.7 pipeline file + expert memory + slot caps, `memory.py`) | 353 | 50.1 | 85.1 | **74.7** | 67.5 / 98.1 | 100 / 100 |
+| 11:46 | **`20261025-1138.final`** (fresh one-shot run of `make_clean_submission.sh`, nothing reused) | 349 | 50.7 | 85.1 | **74.9** | 65.8 / 94.3 | 100 / 100 |
+| 11:50 | `20261025-1148.ensemble-2runs` (1138 run + 29 obligations only the 1116 run states) | 378 | 47.9 | 87.0 | 74.8 | 65.0 / 98.1 | 100 / 100 |
 | 10:58 | **`20261025-1048.pipeline-template`** (pipeline output, no hand steps: verifier → vote 0.30 → `recall_first.py` → `template.py`; file said team-00, credited to team-16; rebuilt with team-16 as `…1058.pipeline-template`) | 378 | 45.2 | 82.2 | **70.7** | 67.5 / 98.1 | 100 / 100 |
 | *(not uploaded)* | `20261025-1005.relevance-keeptablesentence` (relevance judge: −25 duplicates / other functions) | 543 | — | — | — | — | — |
 
