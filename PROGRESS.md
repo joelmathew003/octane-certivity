@@ -1,8 +1,57 @@
 # Progress report: Octane × Certivity
 
-Updated: 2026-10-24, 22:55 (Saturday)
+Updated: 2026-10-25, 10:05 (Sunday)
 
-Status: On the platform, the 4-voter probability score (`submissions/dev-rear-lamp.vote-prob.json`, 292 requirements) reached **requirement F2 72.2** with **requirement F1 63.1%** (Precision **52.1%**, Recall **80.0%**) and **Page F1 87.2%**, beating the 3-voter clean vote (`submissions/dev-rear-lamp.vote-clean.json`, 344 requirements: F2 **68.4%**, F1 **56.6%**, Precision **43.9%**, Recall **79.5%**) on every single metric. On the sub-challenge (`submissions/subgoal-dev.json`), `subgoal.py` achieved flag recall **83.3%**, precision **90.9%**, and accuracy **89.5%**.
+Status (Sunday 10:05): On the **held-out case (front bumper)**, our **final counting upload is requirement F2 66.3** (recall 87.0%, precision 34.0%, 532 requirements; `submissions/heldout-front-bumper.20261025-1015.dup50-minus-duplicates.json`), with regulations and pages at 100% recall; best single draw was 66.9. Third on the board at 10:00. Only the held-out case is evaluated (organisers on Discord, 2026-10-25 00:59). See section 0.
+
+## 0. Held-out case (Sunday 2026-10-25)
+
+### 0.1 Uploads
+
+The held-out leaderboard counts each team's **last** valid upload. At 09:10 we were third (sudo 70.3, Out Of Scope 67.4).
+
+| Upload | File (`submissions/heldout-front-bumper.<name>.json`) | Reqs | Req P | Req R | Req F2 | Page P / R | Reg P / R |
+|---|---|---|---|---|---|---|---|
+| 08:53 | `20261025-0849.final` (pipeline as is: 10 regulations, threshold 0.60, scope filter) | 273 | 45.4 | 59.6 | 56.1 | 63.0 / 86.8 | 77.8 / 100 |
+| 08:57 | `20261025-0905.probe1-t040-noR94-noGTR9` (threshold 0.40, no scope) | 368 | 37.5 | 66.3 | 57.5 | 54.3 / 83.0 | 85.7 / 85.7 |
+| 09:00 | `20261025-0910.probe2-t030-GTR9-noR152-noR94` (the 7 right regulations, threshold 0.30) | 409 | 36.7 | 72.1 | 60.4 | 58.1 / 94.3 | 100 / 100 |
+| 09:02 | re-upload of a probe file | — | 44.2 | 67.3 | 60.9 | — | — |
+| 09:09 | **`20261025-0920.recallfirst-dup50`** (probe 2 + 135 full-read sentences not yet covered) | 544 | 33.8 | **88.5** | **66.9** | 53.0 / 100 | 100 / 100 |
+| 09:55 | `20261025-0945.recallfirst2-safescope` (+24 from a 2nd full read, −43 in dev-safe scope categories) | 525 | 33.9 | 85.6 | 65.6 | 54.1 / 100 | 100 / 100 |
+| 09:58 | `20261025-0940.recallfirst2-dup50` (66.9 file + the 2nd full read's 24 new sentences, no cuts) | 568 | 32.2 | 88.0 | 65.4 | 52.0 / 100 | 100 / 100 |
+| 10:01 | **`20261025-1015.dup50-minus-duplicates`** (66.9 file − 12 duplicates flagged by the relevance judge) — **final** | 532 | 34.0 | 87.0 | **66.3** | 53.0 / 100 | 100 / 100 |
+| *(not uploaded)* | `20261025-1005.relevance-keeptablesentence` (relevance judge: −25 duplicates / other functions) | 543 | — | — | — | — | — |
+
+At 10:00 the board read: Out Of Scope 71.6 (R 85.1, P 43.8, ≈404 reqs), BarelyLegal 70.0 (R 89.4, P 37.4, ≈497 reqs), octane 65.4 → 66.3. BarelyLegal reaches our recall with ~70 fewer requirements: their output is more compact (one requirement per obligation), while ours merges two extractors and keeps paraphrase copies.
+
+Gold size, from precision and recall: about **208 requirements** in **7 regulations** (R10, R26, R42, R127, GTR 9, R148, R48).
+
+### 0.2 What we learned
+
+1. **Regulation selection over-included.** The selector chose 10 regulations. R94 (whole-vehicle frontal crash test) and R152 (emergency braking, *assumed* from "radar sensor") are wrong: the bumper only contributes to them. R100 had no requirements left after the vote. The prompt already said "exclude whole-vehicle performance the product does not determine"; the model argued around it ("contributes to", "assumed to be the AEBS function").
+   - **Honest note:** we found which two were wrong by uploading probes and reading the platform's regulation precision. The fix below makes the pipeline reach the same choice on its own.
+   - **Fix (built, `run.py`):** each shortlisted regulation is verified on its own (`prompts/select_verify.*`): what are its requirements about (product/part, installation, horizontal technology, whole-vehicle performance, other system), with a quoted reason. On run 1's shortlist it keeps exactly the 7 right regulations and drops R94, R152 and R100 ($0.28).
+2. **Recall pays on a new product.** Precision is lower for every team on this case, so adding requirements helps when about F2/5 ≈ 12–13% of them match (14.5% on dev). The full-read sentences that the vote had not covered matched at about 25%: recall 72.1% → 88.5%, F2 60.4 → 66.9.
+3. **The scope filter's "test procedure" category cut real requirements on this product** (pedestrian-test conditions in R127 / GTR 9). Only the dev-safe categories (pointer, approval-mark composition, presence/orientation, not this product, administrative) are now considered.
+4. **Platform judge noise:** on dev the same 344-requirement file scored 72.5 and 68.4. Treat single uploads as ±2 points.
+5. **On this product, cutting loses matches and adding finds them.** The dev-safe paragraph cuts (−43, mostly R148 "not this product" on the spec's vague "(Side) Lighting") lowered matches from ~184 to ~178 despite +24 additions: the cut items matched well above the ~13% break-even. So the held-out submission keeps everything the vote and the full reads write; the scope filter stays off for it.
+6. **Relevance judge (`relevance.py`, built, $0.96):** per requirement, Claude estimates the chance an expert lists it, seeing each paragraph's requirements side by side and how many sources wrote each; it cuts duplicates of a kept requirement and the < 10% tail (F2/5 ≈ 13% is the break-even), never the paragraph's own sentence before a table (experts list it next to the rows), and at most half a paragraph. On the bumper it cut only 25 of 568: most of our wrong requirements look plausible even to a careful reviewer, so precision is not where this pipeline can gain more today.
+7. **Realistic ceiling for this pipeline: about 67–70.** F2 80 would need precision ~54% at recall ~91% (cut ~190 wrong requirements, lose almost no matches); our best precision ever (dev, tuned) was 52% at 82% recall.
+
+### 0.3 Next step
+
+**Submission frozen at 10:01** (`dup50-minus-duplicates`, F2 66.3; the 66.9 file is statistically the same). PDF structure was checked on dev as a precision signal: no section, depth, length or annex group is below the ~13% break-even except top-level headings (8 requirements), so no structural cut pays. Then: `recall_first.py`, so the submission comes from the pipeline instead of manual steps (threshold 0.30 + full-read sentences not yet covered, no scope filter), and the demo and pitch.
+
+### 0.4 Procedure (held-out)
+
+1. Copy `cases/heldout-front-bumper` and `subgoal/heldout` from the official kit into `data/` (no new regulations; no new PDFs).
+2. `work/make_clean_submission.sh cases/heldout-front-bumper` (about 15 min, about $7 + about $4 per regulation without obligations). It writes timestamped files: `submissions/<case>.<YYYYMMDD-HHMM>.final.json` (upload) and `.vote-clean.json` (fallback).
+3. Check `work/runs/<case>/selection_check.json` (verifier decisions with quotes) before uploading.
+4. Upload a timestamped file. The last valid upload counts.
+
+## Dev case (Saturday)
+
+Status (Saturday 22:55): On the platform, the 4-voter probability score (`submissions/dev-rear-lamp.vote-prob.json`, 292 requirements) reached **requirement F2 72.2** with **requirement F1 63.1%** (Precision **52.1%**, Recall **80.0%**) and **Page F1 87.2%**, beating the 3-voter clean vote (`submissions/dev-rear-lamp.vote-clean.json`, 344 requirements: F2 **68.4%**, F1 **56.6%**, Precision **43.9%**, Recall **79.5%**) on every single metric. On the sub-challenge (`submissions/subgoal-dev.json`), `subgoal.py` achieved flag recall **83.3%**, precision **90.9%**, and accuracy **89.5%**.
 
 ## 1. Scores
 
@@ -26,9 +75,16 @@ IMPORTANT: The leaderboard ranks the teams by requirement F2. F2 counts recall m
 | 22:31 | 4-voter probability score (`threshold=0.60`: agent + lenient + full read + paragraph judge + `facts.py` + `tables.py`, `vote-prob`) | 292 | **52.1** | **80.0** | **63.1** | **72.2** | **87.2** | 100 |
 | 22:31 | 4-voter probability score (2nd upload of same file, judge variance check) | 292 | 51.4 | 78.9 | 62.2 | 71.3 | 87.2 | 100 |
 | 22:42 | 3-voter clean vote (agent + lenient + full read `--no-review` + `facts.py` + `tables.py`, `vote-clean`) | 344 | 43.9 | 79.5 | 56.6 | 68.4 | 82.3 | 100 |
+| 23:43 | `vote-clean` (the 72.5 file) minus 26 requirements in dev-safe scope categories (`scope-safe`) | 318 | 47.5 | 79.5 | 59.4 | 70.0 | 83.6 | 100 |
+| 23:46 | **Scope filter v2 on the 72.5 file (`scope2-best`)** | 296 | 52.4 | 81.6 | 63.8 | **73.4** | 84.3 | 100 |
+| 00:02 | COP fix re-run + scope (`scope-cop`) | 283 | 53.4 | 79.5 | 63.8 | 72.4 | 86.2 | 100 |
+| 02:29 | Editor agent (rewrite each paragraph from two drafts, `edited2-best`) | 317 | 48.9 | 81.6 | 61.1 | 72.0 | 84.3 | 100 |
 | *(ready)* | Fresh Calibrated Full Read (`run.py` v2, 53/53 pages matched) | 314 | ~51.9 | ~85.8 | ~64.7 | ~75.9 | 82.8 | 100 |
 
-- The clean vote (`submissions/dev-rear-lamp.vote-clean.json`, built via `work/make_clean_submission.sh`) achieves **72.5** requirement F2 on the platform.
+- The clean vote (`submissions/dev-rear-lamp.vote-clean.json`, built via `work/make_clean_submission.sh`) achieves **72.5** requirement F2 on the platform. **The same file also scored 68.4 (22:42): the platform judge varies by about ±2 points per upload.**
+- Saturday night (dev): with 190 gold, F2 = 5·matches/(760 + n), so a requirement is worth adding only if ≥ F2/5 ≈ 14.5% of such requirements match. Tested and rejected: a lower vote threshold, a completion pass, dropping table rows, a duplicate merger, averaging two runs, adding full-read sentences, and the editor agent. The scope filter (v2) gave about +3 F2 at the same number of matches.
+- **The ceiling is in the obligation dataset.** A local model judge (dev only, uses the answer key) found that all obligations in and around the 119 gold paragraphs match at most ~139 of 190 gold requirements: they are split differently from the experts' (table rows instead of the paragraph's own sentence, two obligations merged, an exception without its rule). The final output matches 131–134, so selection loses only ~5–8. Obligations + full read together reach ~153.
+- PDF extraction is not the bottleneck: flattened superscripts, footnotes taken as paragraphs and flattened tables each touch under 2% of the gold requirements.
 - The table step (`tables.py`) adds 3.4 points of F2 and 3.2 points of F1 on the platform.
 - The fresh full-read run (`run.py` v2) achieved 53 of 53 gold pages (100% page recall) and 85.8% gold requirement alignment offline (163 of 190 obligations matched) by fixing over-pruning of test parameters/COP and extracting conditional exemptions.
 - A stricter agent makes a better vote: the lenient review gives the recall, so the agent must give the precision.
@@ -67,7 +123,8 @@ NOTE: The proxy, the keep rates in the review prompt and all dev scores use the 
 ### 1.3 Cost
 
 - Obligations for the 4 dev regulations (one time): $11.79.
-- Total use of the hackathon credits until now: approximately **$26 of $150**.
+- Total use of the hackathon credits until now: approximately **$26 of $150** (Saturday 22:55).
+- Sunday 08:45: **$67.28** credits left on this account; the organisation's monthly spend limit is **$100** (about $82 used), which binds before the credits do. One held-out pipeline run costs about $7; obligations for a new regulation about $2–5 (built once, then cached).
 
 ## 2. Architecture now
 
@@ -176,6 +233,8 @@ Section 5 of the diagram (gray box) shows it.
 | `0a8332d` | ishwargov | Remove dev-case answers from all prompt examples; `facts.py` + `vote.py --facts` |
 | `fcf6873` | Joel Mathew | Debiased sub-goal |
 | `5fc016d` / `0a2cb2c` | ishwargov | 4-voter probability score (`vote.py`), `--reuse-candidates` (`retrieve.py`), drawing for all steps, UN GTR 9 Part II + standalone Annex + bare-number index fixes (`index_pdfs.py`, `db.py`, `regs.py`) |
+| `e280e31` | ishwargov | Selection verifier (`run.py`, `prompts/select_verify.*`); scope filter (`scope.py`); stream retry (`llm.py`); `index_pdfs.py` back to the version that produced `work/index` (the `0a2cb2c` change mislabelled R150 and 39 other regulations when re-run; GTR 9 rationale labels stay handled in `db.py`); COP tolerances kept in the agent and judge prompts; `make_clean_submission.sh` (index step, per-step failure check, scope, timestamps); obligations for 11 more regulations; held-out data |
+| `baa590c` | ishwargov | Diagram section 7: held-out run changes |
 
 ## 7. Work that is not complete
 
