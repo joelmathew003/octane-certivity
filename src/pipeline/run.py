@@ -133,11 +133,22 @@ def verify(choice: dict, spec: str, images: list[dict]) -> dict:
     return {**choice, **answer, "keep": answer["keep"] and answer["subject"] in VERIFY_SUBJECTS[:3]}
 
 
+VERIFY_RUNS = 3   # one call is not stable (a rerun once called R127 whole-vehicle while keeping GTR 9): majority of 3
+
+
 def verify_selection(selected: list[dict], spec: str, images: list[dict], workers: int) -> list[dict]:
     """The broad selection over-includes regulations the product only contributes to (on the held-out front bumper:
-    a whole-vehicle crash test and emergency braking), so each shortlisted regulation is checked on its own."""
+    a whole-vehicle crash test and emergency braking), so each shortlisted regulation is checked on its own,
+    VERIFY_RUNS times, and kept when most runs keep it."""
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        return list(pool.map(lambda choice: verify(choice, spec, images), selected))
+        runs = list(pool.map(lambda choice: verify(choice, spec, images), selected * VERIFY_RUNS))
+    checked = []
+    for i, choice in enumerate(selected):
+        answers = runs[i::len(selected)]
+        keep = sum(a["keep"] for a in answers) * 2 > len(answers)
+        first = next(a for a in answers if a["keep"] == keep)
+        checked.append({**first, "keep": keep, "votes": [a["subject"] for a in answers]})
+    return checked
 
 
 def extract(regulation: str, reason: str, spec: str, images: list[dict] | None = None) -> list[dict]:

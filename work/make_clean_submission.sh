@@ -19,7 +19,9 @@
 #      and verifies citations -> submissions/<case_id>.vote-clean.json
 #   6. Recall-first union (recall_first.py): adds the full read's sentences the vote has not covered.
 #   7. Worked-example template (template.py): for regulations a worked example covers, keeps only the kinds of
-#      paragraph its experts cite -> submissions/<case_id>.final.json (held-out: 56.1 -> 71.6 with steps 5-7)
+#      paragraph its experts cite (held-out: 56.1 -> 71.6 with steps 5-7)
+#   8. Expert memory (memory.py): where a worked example's experts wrote a paragraph's requirements, use their
+#      wording -> submissions/<case_id>.final.json
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=.venv/bin/python
@@ -73,8 +75,10 @@ echo "[$SECONDS s] vote done -> $S.vote-clean.json (fallback upload)"
 $PY -m src.pipeline.recall_first "$CASE" --vote "$S.vote-clean.json" --fullread "$S.fullread-clean.json" \
     > "work/runs/${CASE_ID}-recallfirst.log" 2>&1
 # 7. Worked-example template: for regulations a worked example covers, keep only the paragraph kinds its experts cite
-$PY -m src.pipeline.template "$CASE" --submission "$S.recallfirst.json" --name final > "work/runs/${CASE_ID}-template.log" 2>&1
-# 8. Keep every run: timestamped copies of the upload files (the plain names always hold the latest run)
+$PY -m src.pipeline.template "$CASE" --submission "$S.recallfirst.json" --name template > "work/runs/${CASE_ID}-template.log" 2>&1
+# 8. Expert memory: paragraphs a worked example cites get the experts' own requirements (split and wording)
+$PY -m src.pipeline.memory "$CASE" --submission "$S.template.json" --name final > "work/runs/${CASE_ID}-memory.log" 2>&1
+# 9. Keep every run: timestamped copies of the upload files (the plain names always hold the latest run)
 T=$(date +%Y%m%d-%H%M)
 cp "$S.final.json" "$S.$T.final.json"
 cp "$S.vote-clean.json" "$S.$T.vote-clean.json"
