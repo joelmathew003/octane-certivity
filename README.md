@@ -35,7 +35,10 @@ spec.md + drawing
    ├─ 5. Worked-example template ─ for regulations a worked example covers, keep     template.py
    │                               only the kinds of paragraph its experts cite
    │
-   └─ 6. Citation check ─ every paragraph exists, page and version match the base     citations.py
+   ├─ 6. Expert memory ─ paragraphs a worked example cites get its experts' own     memory.py
+   │                     requirements; lamp-function slots capped at the experts' count
+   │
+   └─ 7. Citation check ─ every paragraph exists, page and version match the base     citations.py
                           file, every number appears in the cited paragraph
 ```
 
@@ -63,6 +66,12 @@ cached by paragraph text, so a regulation is paid for only once. The architectur
   It applies this only to regulations the worked example covers, and never reads the case's own answers. On the
   held-out bumper it removed 161 requirements, mostly approval-mark layout, annex lab procedures, conformity of
   production, and lamp presence and orientation lines. Precision went from 34% to 45%: F2 66.9 → 71.6.
+- **Expert memory.** A certification team keeps the requirement lists of products it has certified and reuses them
+  when a new product falls under the same paragraph. [memory.py](src/pipeline/memory.py) does the same with the worked
+  examples. Where the pipeline cites a paragraph the experts also cited, it uses their requirements (their split and
+  wording) instead of its own. In a lamp-function slot that template.py learned, it keeps at most as many requirements
+  as the experts wrote for that slot. It never adds a paragraph the pipeline did not choose. On the bumper, the 119
+  requirements in remembered paragraphs became the experts' 106, and slot caps removed 12 more (378 → 353).
 - **Every citation checked by code.** Page and version come from the base PDF, never from the model, and a number in
   a requirement that the cited paragraph does not contain is reported.
 - **Prompts are files.** Every prompt is in [src/pipeline/prompts/](src/pipeline/prompts/). No prompt contains an
@@ -78,6 +87,7 @@ These experiments are measured in PROGRESS.md and left out of the default chain:
 | Per-requirement relevance judge | `relevance.py` | Most wrong requirements look plausible even to a careful reviewer |
 | Completion, dedupe and editor passes | `complete.py`, `dedupe.py`, `editor.py` | Neutral |
 | Cutting lab procedures in the product's core regulations | — | Lost matches (F2 71.6 → 66.7): for a bumper, the experts list the pedestrian and impact test conditions |
+| Adding more impact-test conditions from the obligation database | — | Only about 6% matched (F2 71.6 → 69.9); the pipeline's own selection was the right amount |
 
 ## Quick start
 
@@ -91,16 +101,17 @@ printf 'ANTHROPIC_API_KEY=...\nTEAM_ID=team-16\n' > .env
 work/make_clean_submission.sh cases/heldout-front-bumper
 ```
 
-The script runs steps 1 to 6 and writes `submissions/<case>.<YYYYMMDD-HHMM>.final.json`, which is the file to
+The script runs steps 1 to 7 and writes `submissions/<case>.<YYYYMMDD-HHMM>.final.json`, which is the file to
 upload. Each step logs to `work/runs/<case>-*.log`; the regulation verifier's decisions, with quotes, are in
 `work/runs/<case>/selection_check.json`. A case takes about 15 minutes and about $7 in API calls, plus about $4 for
-each selected regulation that has no obligation database yet. Steps 3 to 6 make no model calls, so they can be rerun
+each selected regulation that has no obligation database yet. Steps 3 to 7 make no model calls, so they can be rerun
 for free:
 
 ```bash
 .venv/bin/python -m src.pipeline.recall_first cases/<case> --vote submissions/<case>.vote-clean.json \
     --fullread submissions/<case>.fullread-clean.json
-.venv/bin/python -m src.pipeline.template cases/<case> --submission submissions/<case>.recallfirst.json --name final
+.venv/bin/python -m src.pipeline.template cases/<case> --submission submissions/<case>.recallfirst.json
+.venv/bin/python -m src.pipeline.memory cases/<case> --submission submissions/<case>.template.json --name final
 .venv/bin/python -m src.pipeline.citations submissions/<case>.final.json      # citation report
 .venv/bin/python data/tools/validate.py submissions/<case>.final.json         # kit's format check
 ```
@@ -124,7 +135,7 @@ gives its usage, its inputs and outputs, and its cost.
 
 ## Limitations
 
-- The model calls are not deterministic, so two runs of steps 1 and 2 give slightly different files. Steps 3 to 6 are
+- The model calls are not deterministic, so two runs of steps 1 and 2 give slightly different files. Steps 3 to 7 are
   deterministic. The current pipeline's steps 4 and 5, run on the held-out case's saved step-3 output, produce 378
   requirements; 377 of them are in the 383-requirement upload that scored 71.6.
 - The template helps only for regulations a worked example covers: three of the bumper's seven (R10, R48, R148).

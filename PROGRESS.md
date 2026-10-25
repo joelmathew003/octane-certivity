@@ -61,6 +61,8 @@ Upload `20261025-1034.template-plus-impacttests` after 10:55 (hourly limit). Exp
 - `work/make_clean_submission.sh`: vote threshold 0.30, scope filter off, then `recall_first` and `template` → `final.json`.
 - The impact-tests file (`20261025-1034.template-plus-impacttests`) is **not** pipeline output: its additions were picked by hand after the 66.7 result, so it uses held-out feedback. The fair upload is the pipeline's 378-requirement file (`submissions/heldout-front-bumper.20261025-1058.pipeline-template.json`).
 - `README.md` added for the code judges.
+- **11:16 expert memory (`src/pipeline/memory.py`, free):** for every paragraph the submission cites and the worked example cites too, the experts' requirements replace ours (their split and wording; page and version from the same base file). In lamp-function slots learned by `template.py`, a paragraph keeps at most the experts' largest count for that slot (closest to their wording). It never adds a paragraph. On the pipeline file: R10 41 → 32, R148 58 → 55, R48 20 → 19 in remembered paragraphs, slot caps −12: 378 → 353 (`submissions/heldout-front-bumper.20261025-1116.pipeline-memory-caps.json`). Of the expert texts, 83 of 106 were already near-copied by our requirements (similarity ≥ 0.6), so the main effect is the expert's split: fewer requirements, same obligations.
+- 11:10 fresh one-shot run of `make_clean_submission.sh` started (log `work/runs/heldout-front-bumper-fresh-1110.log`; previous run outputs backed up to `work/runs/heldout-front-bumper.backup-1110` and `submissions/backup-1110/`).
 
 ### 0.4 Procedure (held-out)
 
