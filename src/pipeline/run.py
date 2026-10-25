@@ -108,6 +108,21 @@ def select_regulations(spec: str, images: list[dict]) -> list[dict]:
     return llm.ask_json(prompts.render("select.system"), content, select_schema())["regulations"]
 
 
+SELECT_RUNS = 3   # one shortlist is not stable (a rerun left out GTR 9): the union of 3, then the verifier prunes it
+
+
+def shortlist(spec: str, images: list[dict], workers: int) -> list[dict]:
+    """The union of SELECT_RUNS selections (recall first); each regulation keeps the reason of its first selection."""
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        runs = list(pool.map(lambda _: select_regulations(spec, images), range(SELECT_RUNS)))
+    union: dict[str, dict] = {}
+    for run_ in runs:
+        for choice in run_:
+            union.setdefault(choice["regulation"], choice)
+    print(f"[select] {SELECT_RUNS} shortlists: " + " | ".join(" ".join(c["regulation"] for c in r) for r in runs))
+    return list(union.values())
+
+
 VERIFY_SUBJECTS = ["product_or_part", "installation_of_product", "horizontal_technology", "whole_vehicle_performance",
                    "other_system"]
 HEADINGS_CHARS = 6000
@@ -224,7 +239,7 @@ def main() -> None:
         selected = [{"regulation": r, "role": "given", "reason": "chosen on the command line"} for r in args.regulations]
     else:
         print("[select] reading the catalogue ...", flush=True)
-        checked = verify_selection(select_regulations(spec, images), spec, images, args.workers)
+        checked = verify_selection(shortlist(spec, images, args.workers), spec, images, args.workers)
         (run_dir / "selection_check.json").write_text(json.dumps(checked, indent=2, ensure_ascii=False), encoding="utf-8")
         for choice in checked:
             if not choice["keep"]:
