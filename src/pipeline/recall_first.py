@@ -21,10 +21,10 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 try:
-    from src.pipeline import citations, run, vote
+    from src.pipeline import citations, llm, run, vote
 except ModuleNotFoundError as e:
     if e.name in ("src", "src.pipeline"):
-        from pipeline import citations, run, vote
+        from pipeline import citations, llm, run, vote
     else:
         raise
 
@@ -40,6 +40,7 @@ def main() -> None:
     parser.add_argument("--name", default="recallfirst", help="output variant: submissions/<case>.<name>.json")
     args = parser.parse_args()
 
+    llm.load_env()
     case_id = args.case_dir.name
     base = [item for item in vote.load(args.vote)
             if args.regulations is None or item["source"]["regulation"] in args.regulations]

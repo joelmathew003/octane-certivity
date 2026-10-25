@@ -56,9 +56,9 @@ Upload `20261025-1034.template-plus-impacttests` after 10:55 (hourly limit). Exp
 
 **Done at 10:50 (fairness: the 71.6 result now comes from the pipeline, no hand steps, no hints):**
 - `src/pipeline/recall_first.py`: the vote plus the full read's sentences the vote has not covered (similarity < 0.5). Rebuilt from the saved held-out run outputs, it reproduces the 66.9 file exactly (544/544).
-- `src/pipeline/template.py`: learns the template from the worked examples' `expected.json` (never the case's own). It keeps cited paragraphs and their sub-paragraphs, plus clauses cited for ≥3 functions whose openings read alike. It learned R148 5.\*.1/5.\*.7, R48 6.\*.2/4/5/7 and R10 6.\*.2 on its own. On the held-out run outputs it gives 378 requirements, 372 of them in the 71.6 upload. The 6 it drops are R10 6.10.6/6.10.7 (a hand exception, i.e. a hint) and R48 6.18.8 (tell-tale, cited for only one function in the worked example).
+- `src/pipeline/template.py`: learns the template from the worked examples' `expected.json` (never the case's own). It keeps cited paragraphs and their sub-paragraphs, plus clauses cited for ≥3 functions whose openings read alike. It learned R148 5.\*.1/5.\*.7, R48 6.\*.2/4/5/7 and R10 6.\*.2 on its own. On the held-out run outputs it gives 378 requirements, 377 of them in the 71.6 upload. The 6 it drops are R10 6.10.6/6.10.7 (a hand exception, i.e. a hint) and R48 6.18.8 (tell-tale, cited for only one function in the worked example).
 - `work/make_clean_submission.sh`: vote threshold 0.30, scope filter off, then `recall_first` and `template` → `final.json`.
-- The impact-tests file (`20261025-1034.template-plus-impacttests`) is **not** pipeline output: its additions were picked by hand after the 66.7 result, so it uses held-out feedback. The fair upload is the pipeline's 378-requirement file (`submissions/heldout-front-bumper.20261025-1048.pipeline-template.json`).
+- The impact-tests file (`20261025-1034.template-plus-impacttests`) is **not** pipeline output: its additions were picked by hand after the 66.7 result, so it uses held-out feedback. The fair upload is the pipeline's 378-requirement file (`submissions/heldout-front-bumper.20261025-1058.pipeline-template.json`).
 - `README.md` added for the code judges.
 
 ### 0.4 Procedure (held-out)

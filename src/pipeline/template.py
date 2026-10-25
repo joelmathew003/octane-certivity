@@ -26,10 +26,10 @@ from itertools import combinations
 from pathlib import Path
 
 try:
-    from src.pipeline import citations, db, run, vote
+    from src.pipeline import citations, db, llm, run, vote
 except ModuleNotFoundError as e:
     if e.name in ("src", "src.pipeline"):
-        from pipeline import citations, db, run, vote
+        from pipeline import citations, db, llm, run, vote
     else:
         raise
 
@@ -92,6 +92,7 @@ def main() -> None:
     args = parser.parse_args()
 
     db.ensure_fresh()
+    llm.load_env()
     case_dir = next((base / args.case_dir for base in (run.DATA_DIR, run.REPO_ROOT) if (base / args.case_dir).exists()),
                     args.case_dir).resolve()
     requirements = json.loads(args.submission.read_text(encoding="utf-8"))["requirements"]

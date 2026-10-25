@@ -126,7 +126,7 @@ gives its usage, its inputs and outputs, and its cost.
 
 - The model calls are not deterministic, so two runs of steps 1 and 2 give slightly different files. Steps 3 to 6 are
   deterministic. The current pipeline's steps 4 and 5, run on the held-out case's saved step-3 output, produce 378
-  requirements; 372 of them are in the 383-requirement upload that scored 71.6.
+  requirements; 377 of them are in the 383-requirement upload that scored 71.6.
 - The template helps only for regulations a worked example covers: three of the bumper's seven (R10, R48, R148).
   Each new worked example widens it. The other four regulations keep everything the vote and the full read write.
 - The base version is cited throughout, as the challenge asks; the latest versions are used only by the sub-challenge.
